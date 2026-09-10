@@ -1,0 +1,14 @@
+# Dependencies and generated outputs
+/node_modules/
+/dist/
+/desktop-dist/
+/release/
+/coverage/
+*.tsbuildinfo
+
+# Personal backups and local settings
+/BACKUPS/
+.env*
+*.pem
+*.log
+.DS_Store

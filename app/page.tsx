@@ -1,0 +1,1491 @@
+'use client';
+import {desktopRequest, artworkUrl} from '@/lib/desktop';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import {
+  mapOptions,
+  normalizeTitle,
+  type LookupCandidate,
+  type LookupDetails,
+} from '@/lib/game-lookup';
+import {
+  Gamepad2,
+  Plus,
+  Search,
+  Settings2,
+  LayoutGrid,
+  List,
+  Download,
+  RefreshCw,
+  Trash2,
+  Heart,
+  Disc3,
+  Monitor,
+  ArrowUpRight,
+  Check,
+  Library as LibraryIcon,
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import { Empty, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  display,
+  validate,
+  type Library,
+  type Field,
+  type Game,
+} from '@/lib/library';
+const title = (g: Game, fields: Field[]) =>
+  display(
+    g.values.Title || g.values[fields.find((f) => f.type === 'text')?.id ?? ''],
+  ) || 'Untitled game';
+const contains = (g: Game, key: string, value: string) =>
+  Array.isArray(g.values[key])
+    ? (g.values[key] as string[]).includes(value)
+    : g.values[key] === value;
+const safeLink = (value: unknown) => {
+  try {
+    const url = new URL(display(value));
+    return url.protocol === 'https:' || url.protocol === 'http:'
+      ? url.href
+      : '';
+  } catch {
+    return '';
+  }
+};
+function GameThumbnail({ url, variant }: { url?: string; variant: 'card' | 'list' }) {
+  const [failed, setFailed] = useState(false);
+  const src = artworkUrl(safeLink(url));
+  if (!src || failed) return variant === 'card' ? <Gamepad2 size={42} strokeWidth={1.3} /> : null;
+  return <img className={`game-thumbnail game-thumbnail-${variant}`} src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
+}
+const scoreTone = (value: unknown) => {
+  if (value === '' || value === undefined || value === null)
+    return 'score-unrated';
+  const score = Number(value);
+  if (!Number.isFinite(score)) return 'score-unrated';
+  if (score >= 9) return 'score-exceptional';
+  if (score >= 8) return 'score-great';
+  if (score >= 7) return 'score-good';
+  if (score >= 6) return 'score-mixed';
+  return 'score-poor';
+};
+function Pick({
+  value,
+  onChange,
+  options,
+  label,
+}: {
+  value: string;
+  onChange: (s: string) => void;
+  options: string[];
+  label: string;
+}) {
+  return (
+    <Select value={value} onValueChange={(v) => v !== null && onChange(v)}>
+      <SelectTrigger aria-label={label} className="picker">
+        <SelectValue>{value}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((o) => (
+          <SelectItem key={o} value={o}>
+            {o}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+export default function Home() {
+  const [data, setData] = useState<Library | null>(null),
+    [error, setError] = useState(''),
+    [busy, setBusy] = useState(false),
+    [notice, setNotice] = useState(''),
+    [view, setView] = useState('All games'),
+    [query, setQuery] = useState(''),
+    [platform, setPlatform] = useState('All platforms'),
+    [genre, setGenre] = useState('All genres'),
+    [status, setStatus] = useState('All statuses'),
+    [sort, setSort] = useState('Title A–Z'),
+    [layout, setLayout] = useState('grid'),
+    [limit, setLimit] = useState(48),
+    [draft, setDraft] = useState<Game | null>(null),
+    [settings, setSettings] = useState(false),
+    [fieldDraft, setFieldDraft] = useState<Field | null>(null),
+    [optionText, setOptionText] = useState(''),
+    [confirm, setConfirm] = useState<{
+      title: string;
+      body: string;
+      run: () => Promise<void>;
+    } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [lookupQuery, setLookupQuery] = useState('');
+  const [lookupMatches, setLookupMatches] = useState<LookupCandidate[]>([]);
+  const [lookupStatus, setLookupStatus] = useState('');
+  const [lookupBusy, setLookupBusy] = useState(false);
+  const [lookupRetry, setLookupRetry] = useState(0);
+  const lookupAbort = useRef<AbortController | null>(null);
+  const importedValues = useRef<LookupDetails['values']>({});
+  const lookupPreviousQuery = useRef('');
+  const [artworkGameId, setArtworkGameId] = useState<string | null>(null);
+  const isNewGame = !!draft && !data?.games.some((g) => g.id === draft.id);
+  const artworkLookup = !!draft && !isNewGame && artworkGameId === draft.id;
+  async function lookupRequest(body: unknown, signal: AbortSignal) {
+    const r = await desktopRequest('/api/game-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal,
+    });
+    const result: any = await r.json();
+    if (!r.ok) throw new Error(result.error || 'Could not look up this game.');
+    return result;
+  }
+  async function fillGame(
+    candidate: LookupCandidate,
+    controller: AbortController,
+    draftId: string,
+  ) {
+    setLookupBusy(true);
+    setLookupStatus(`Finding details for ${candidate.name}…`);
+    try {
+      const result: LookupDetails = await lookupRequest(
+        { action: 'details', candidate },
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
+      if (!isNewGame) {
+        if (!result.coverUrl && !result.description) {
+          setLookupStatus(
+            'No artwork or description found for this match. Try another match or link.',
+          );
+          return;
+        }
+        setDraft((current) => {
+          if (!current || current.id !== draftId) return current;
+          const sources = [
+            ...(current.lookup?.sources ?? []),
+            ...result.sources,
+          ];
+          return {
+            ...current,
+            lookup: {
+              ...current.lookup,
+              sources: sources.filter(
+                (s, i) => sources.findIndex((x) => x.url === s.url) === i,
+              ),
+              coverUrl: result.coverUrl || current.lookup?.coverUrl,
+              description: result.description || current.lookup?.description,
+            },
+          };
+        });
+        setLookupStatus(
+          `${result.coverUrl ? 'Artwork' : 'No artwork found; description'}${result.coverUrl && result.description ? ' and description' : ''} ready. Click Save game to keep it.`,
+        );
+        return;
+      }
+      const converted: LookupDetails['values'] = {};
+      for (const [id, value] of Object.entries(result.values)) {
+        const field = data?.fields.find((f) => f.id === id);
+        if (!field) continue;
+        if (
+          (id === 'Platform' || id === 'Genre') &&
+          Array.isArray(value) &&
+          field.type === 'multi_select'
+        )
+          converted[id] = mapOptions(value, id, field.options);
+        else if (
+          (field.type === 'number' && typeof value === 'number') ||
+          ((field.type === 'text' ||
+            field.type === 'url' ||
+            field.type === 'date') &&
+            typeof value === 'string')
+        )
+          converted[id] = value;
+      }
+      const previous = importedValues.current;
+      setDraft((current) => {
+        if (!current || current.id !== draftId) return current;
+        const values = { ...current.values };
+        // Remove old imported suggestions, but preserve everything the user has edited.
+        for (const [id, old] of Object.entries(previous)) {
+          if (JSON.stringify(values[id]) === JSON.stringify(old))
+            values[id] = Array.isArray(old) ? [] : '';
+        }
+        for (const [id, value] of Object.entries(converted)) {
+          const existing = values[id];
+          if (
+            existing === '' ||
+            existing === undefined ||
+            (Array.isArray(existing) && !existing.length) ||
+            (id === 'Title' &&
+              normalizeTitle(display(existing)) === normalizeTitle(lookupQuery))
+          )
+            values[id] = value;
+        }
+        return {
+          ...current,
+          values,
+          lookup: {
+            sources: result.sources,
+            scoreSource: result.scoreSource,
+            releaseNote: result.releaseNote,
+            coverUrl: result.coverUrl,
+            description: result.description,
+          },
+        };
+      });
+      importedValues.current = converted;
+      setLookupStatus(
+        `Details found for ${candidate.name}. Review the fields below.${result.values.Score === undefined ? ' No confirmed IGN score found; score left blank.' : ''}`,
+      );
+    } catch (e) {
+      if (!controller.signal.aborted)
+        setLookupStatus(
+          e instanceof Error
+            ? e.message
+            : 'Lookup failed. Retry or enter the details below.',
+        );
+    } finally {
+      if (!controller.signal.aborted) setLookupBusy(false);
+    }
+  }
+  useEffect(() => {
+    lookupAbort.current?.abort();
+    if (!draft) setArtworkGameId(null);
+    const controller = new AbortController();
+    lookupAbort.current = controller;
+    setLookupMatches([]);
+    setLookupBusy(false);
+    setLookupStatus('');
+    if (isNewGame && lookupPreviousQuery.current !== lookupQuery) {
+      const previous = importedValues.current;
+      const previousQuery = lookupPreviousQuery.current;
+      setDraft((current) => {
+        if (!current) return current;
+        const values = { ...current.values };
+        for (const [id, old] of Object.entries(previous)) {
+          if (JSON.stringify(values[id]) === JSON.stringify(old))
+            values[id] = Array.isArray(old) ? [] : '';
+        }
+        if (
+          data?.fields.some((f) => f.id === 'Title') &&
+          !/^https?:\/\//i.test(lookupQuery) &&
+          (!values.Title || display(values.Title) === previousQuery)
+        )
+          values.Title = lookupQuery.trim();
+        return { ...current, values, lookup: undefined };
+      });
+      importedValues.current = {};
+    }
+    lookupPreviousQuery.current = lookupQuery;
+    if (
+      (!isNewGame && !artworkLookup) ||
+      !draft ||
+      lookupQuery.trim().length < 2
+    )
+      return () => controller.abort();
+    const draftId = draft.id;
+    setLookupBusy(true);
+    setLookupStatus('Searching for your game…');
+    const timer = setTimeout(async () => {
+      try {
+        const result = await lookupRequest(
+          { action: 'search', query: lookupQuery.trim() },
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
+        setLookupMatches(result.candidates);
+        if (result.exact && result.candidates[0])
+          await fillGame(result.candidates[0], controller, draftId);
+        else {
+          setLookupStatus(
+            result.candidates.length
+              ? 'Choose the correct game below.'
+              : 'No matching game found. Try its full title or a Steam link, or enter the details below.',
+          );
+          setLookupBusy(false);
+        }
+      } catch (e) {
+        if (!controller.signal.aborted) {
+          setLookupStatus(
+            e instanceof Error ? e.message : 'Lookup failed. Please retry.',
+          );
+          setLookupBusy(false);
+        }
+      }
+    }, 1100);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [lookupQuery, lookupRetry, draft?.id, isNewGame, artworkLookup]);
+  async function reload() {
+    try {
+      const r = await desktopRequest('/api/library', { cache: 'no-store' });
+      const d: any = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      setData(d);
+      setError('');
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : 'Could not load your collection.',
+      );
+    }
+  }
+  useEffect(() => {
+    const handler = (event: Event) => setError((event as CustomEvent<string>).detail);
+    window.addEventListener('backup-warning', handler);
+    return () => window.removeEventListener('backup-warning', handler);
+  }, []);
+  useEffect(() => {
+    void reload();
+
+  }, []);
+  useEffect(() => {
+    setLimit(48);
+  }, [query, platform, genre, status, view, sort]);
+  useEffect(() => {
+    if (!notice) return;
+    const id = setTimeout(() => setNotice(''), 4500);
+    return () => clearTimeout(id);
+  }, [notice]);
+  async function save(next: Library) {
+    setBusy(true);
+    setError('');
+    try {
+      validate(next);
+      const r = await desktopRequest('/api/library', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next),
+      });
+      const saved: any = await r.json();
+      if (!r.ok) throw new Error(saved.error);
+      setData(saved);
+      setNotice('Saved to your library');
+      return true;
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Could not save. Your changes are still here.',
+      );
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+  function addGame() {
+    if (!data) return;
+    setLookupQuery('');
+    setLookupMatches([]);
+    setLookupStatus('');
+    importedValues.current = {};
+    setDraft({
+      id: crypto.randomUUID(),
+      values: Object.fromEntries(
+        data.fields.map((f) => [
+          f.id,
+          f.type === 'multi_select'
+            ? f.id === 'Ownership'
+              ? [view === 'Wishlist' ? 'Wish List' : 'Physical']
+              : []
+            : f.type === 'checkbox'
+              ? false
+              : '',
+        ]),
+      ),
+    });
+  }
+  useEffect(() => {
+    const ctx = (document as any).modelContext;
+    if (!ctx?.registerTool) return;
+    const life = new AbortController();
+    try {
+      Promise.resolve(
+        ctx.registerTool(
+          {
+            name: 'search_game_library',
+            description: 'Filter the visible game collection by search text.',
+            inputSchema: {
+              type: 'object',
+              properties: { query: { type: 'string' } },
+              required: ['query'],
+              additionalProperties: false,
+            },
+            annotations: { readOnlyHint: true, untrustedContentHint: true },
+            execute: (input: unknown) => {
+              if (!input || typeof (input as any).query !== 'string')
+                throw new Error('query must be a string');
+              const q = (input as any).query;
+              setQuery(q);
+              setView('All games');
+              setPlatform('All platforms');
+              setGenre('All genres');
+              setStatus('All statuses');
+              return { query: q };
+            },
+          },
+          { signal: life.signal },
+        ),
+      ).catch(() => {});
+    } catch {}
+    return () => life.abort();
+  }, []);
+  const fields = data?.fields ?? [],
+    games = data?.games ?? [];
+  const options = (id: string) =>
+    Array.from(
+      new Set([
+        ...(fields.find((f) => f.id === id)?.options ?? []),
+        ...games.flatMap((g) =>
+          Array.isArray(g.values[id]) ? (g.values[id] as string[]) : [],
+        ),
+      ]),
+    ).sort();
+  const filtered = useMemo(
+    () =>
+      games
+        .filter(
+          (g) =>
+            (view === 'All games' ||
+              (view === 'Physical' && contains(g, 'Ownership', 'Physical')) ||
+              (view === 'Digital' && contains(g, 'Ownership', 'Digital')) ||
+              (view === 'Wishlist' && contains(g, 'Ownership', 'Wish List')) ||
+              (view === 'Playing' &&
+                contains(g, 'Status', 'Currently Playing'))) &&
+            (platform === 'All platforms' ||
+              contains(g, 'Platform', platform)) &&
+            (genre === 'All genres' || contains(g, 'Genre', genre)) &&
+            (status === 'All statuses' || contains(g, 'Status', status)) &&
+            Object.values(g.values).some((v) =>
+              display(v).toLowerCase().includes(query.toLowerCase()),
+            ),
+        )
+        .sort((a, b) =>
+          sort === 'Highest score'
+            ? Number(b.values.Score || 0) - Number(a.values.Score || 0)
+            : sort === 'Newest release'
+              ? display(b.values['Release Date']).localeCompare(
+                  display(a.values['Release Date']),
+                )
+              : title(a, fields).localeCompare(title(b, fields)) *
+                (sort === 'Title Z–A' ? -1 : 1),
+        ),
+    [data, view, query, platform, genre, status, sort],
+  );
+  async function download() {
+    try { await window.gameAtlas.exportBackup(); }
+    catch(e) { setError(e instanceof Error ? e.message : 'Backup failed.'); }
+  }
+  async function restore(file: File) {
+    try {
+      if (file.size > 1800000) throw new Error('Backup is too large.');
+      const next = JSON.parse(await file.text());
+      if (next.format !== 'gameatlas-v1')
+        throw new Error('Choose a GameAtlas backup file.');
+      validate(next);
+      setConfirm({
+        title: 'Restore this backup?',
+        body: `Replace this library with ${next.games.length} games and ${next.fields.length} properties from the backup. An automatic backup of your current library will be kept.`,
+        run: async () => {
+          if (data && (await save({ ...next, revision: data.revision }))) {
+            setConfirm(null);
+            setSettings(false);
+          }
+        },
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Invalid backup.');
+    }
+  }
+  function startField(f?: Field) {
+    setFieldDraft(
+      f
+        ? structuredClone(f)
+        : { id: crypto.randomUUID(), name: '', type: 'text', options: [] },
+    );
+    setOptionText(f?.options.join('\n') ?? '');
+  }
+  async function saveField() {
+    if (!fieldDraft || !data) return;
+    const f = {
+      ...fieldDraft,
+      name: fieldDraft.name.trim(),
+      options: Array.from(
+        new Set(
+          optionText
+            .split('\n')
+            .map((x) => x.trim())
+            .filter(Boolean),
+        ),
+      ),
+    };
+    if (!f.name) {
+      setError('Give this property a name.');
+      return;
+    }
+    if (
+      fields.some(
+        (x) => x.id !== f.id && x.name.toLowerCase() === f.name.toLowerCase(),
+      )
+    ) {
+      setError('A property with that name already exists.');
+      return;
+    }
+    const old = fields.find((x) => x.id === f.id);
+    let changedGames = games;
+    try {
+      if (old && old.type !== f.type)
+        changedGames = games.map((g) => {
+          const v = g.values[f.id];
+          let val: any = v;
+          if (v !== '' && v !== undefined) {
+            if (f.type === 'number') {
+              val = Number(display(v));
+              if (!Number.isFinite(val))
+                throw new Error(
+                  'Some values are not numbers. Clear or edit those values before changing this property type.',
+                );
+            } else if (f.type === 'multi_select')
+              val = Array.isArray(v) ? v : [display(v)];
+            else if (f.type === 'checkbox') {
+              if (v !== true && v !== false && v !== 'true' && v !== 'false')
+                throw new Error(
+                  'Some values are not true or false. Edit them before converting to a checkbox.',
+                );
+              val = v === true || v === 'true';
+            } else if (f.type === 'date') {
+              val = display(v);
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(val))
+                throw new Error('Date values must use YYYY-MM-DD.');
+            } else val = display(v);
+          } else
+            val =
+              f.type === 'multi_select'
+                ? []
+                : f.type === 'checkbox'
+                  ? false
+                  : '';
+          return { ...g, values: { ...g.values, [f.id]: val } };
+        });
+      if (
+        await save({
+          ...data,
+          fields: old
+            ? fields.map((x) => (x.id === f.id ? f : x))
+            : [...fields, f],
+          games: changedGames,
+        })
+      )
+        setFieldDraft(null);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  return (
+    <main className="atlas">
+      <header className="masthead">
+        <div className="brand">
+          <Gamepad2 /> GameAtlas<span>PERSONAL LIBRARY</span>
+        </div>
+        <div className="header-actions">
+          <button
+            className="quiet icon-button"
+            aria-label="Settings and properties"
+            onClick={() => setSettings(true)}
+          >
+            <Settings2 size={20} />
+          </button>
+          <button
+            className="primary"
+            onClick={addGame}
+            disabled={!data || busy}
+          >
+            <Plus size={18} /> Add game
+          </button>
+        </div>
+      </header>
+      <section className="collection">
+        <div className="collection-heading">
+          <div>
+            <p className="eyebrow">YOUR COLLECTION, ALL TOGETHER</p>
+            <h1>
+              {
+                {
+                  'All games': 'The Grand Collection.',
+                  Physical: 'On the Shelf.',
+                  Digital: 'Ready to Download.',
+                  Wishlist: 'The Next Adventure.',
+                  Playing: 'The Current Quest.',
+                }[view]
+              }
+            </h1>
+            <p className="muted">
+              {view === 'Wishlist'
+                ? 'Keep the games you want within reach.'
+                : 'Physical favorites. Digital discoveries. Your next adventure.'}
+            </p>
+          </div>
+          <div className="collection-total">
+            <strong>{data ? games.length : '—'}</strong>
+            <span>GAMES IN YOUR ATLAS</span>
+          </div>
+        </div>
+        {error && (
+          <div className="error" role="alert">
+            {error}
+            <button onClick={() => void reload()} className="quiet">
+              Reload latest library
+            </button>
+          </div>
+        )}
+        <Tabs value={view} onValueChange={(v) => setView(String(v))}>
+          <TabsList variant="line" className="library-tabs">
+            {[
+              ['All games', LibraryIcon],
+              ['Physical', Disc3],
+              ['Digital', Monitor],
+              ['Wishlist', Heart],
+              ['Playing', Gamepad2],
+            ].map(([label, Icon]: any) => (
+              <TabsTrigger value={label} key={label}>
+                <Icon size={17} />
+                {label}
+                <span>
+                  {label === 'All games'
+                    ? games.length
+                    : games.filter((g) =>
+                        contains(
+                          g,
+                          label === 'Playing' ? 'Status' : 'Ownership',
+                          label === 'Playing'
+                            ? 'Currently Playing'
+                            : label === 'Wishlist'
+                              ? 'Wish List'
+                              : label,
+                        ),
+                      ).length}
+                </span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className="filter-row">
+          <div className="toolbar">
+            <Search size={19} />
+            <input
+              placeholder="Find a game, studio, or genre…"
+              aria-label="Search games"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button aria-label="Clear search" onClick={() => setQuery('')}>
+                ×
+              </button>
+            )}
+          </div>
+          <Pick
+            value={platform}
+            onChange={setPlatform}
+            options={['All platforms', ...options('Platform')]}
+            label="Filter platform"
+          />
+          <Pick
+            value={genre}
+            onChange={setGenre}
+            options={['All genres', ...options('Genre')]}
+            label="Filter genre"
+          />
+          <Pick
+            value={status}
+            onChange={setStatus}
+            options={['All statuses', ...options('Status')]}
+            label="Filter status"
+          />
+        </div>
+        <div className="result-bar">
+          <p>
+            {data ? `${filtered.length} games` : 'Loading your collection…'}
+            {(query ||
+              platform !== 'All platforms' ||
+              genre !== 'All genres' ||
+              status !== 'All statuses') && (
+              <button
+                className="text-button"
+                onClick={() => {
+                  setQuery('');
+                  setPlatform('All platforms');
+                  setGenre('All genres');
+                  setStatus('All statuses');
+                }}
+              >
+                Clear filters
+              </button>
+            )}
+          </p>
+          <div className="view-controls">
+            <Pick
+              value={sort}
+              onChange={setSort}
+              options={[
+                'Title A–Z',
+                'Title Z–A',
+                'Highest score',
+                'Newest release',
+              ]}
+              label="Sort games"
+            />
+            <button
+              className={`quiet icon-button ${layout === 'grid' ? 'selected' : ''}`}
+              aria-label="Grid view"
+              aria-pressed={layout === 'grid'}
+              onClick={() => setLayout('grid')}
+            >
+              <LayoutGrid size={19} />
+            </button>
+            <button
+              className={`quiet icon-button ${layout === 'table' ? 'selected' : ''}`}
+              aria-label="Table view"
+              aria-pressed={layout === 'table'}
+              onClick={() => setLayout('table')}
+            >
+              <List size={20} />
+            </button>
+            <button
+              className="quiet icon-button"
+              aria-label="Refresh library"
+              onClick={() => void reload()}
+            >
+              <RefreshCw size={17} />
+            </button>
+          </div>
+        </div>
+        {!data ? (
+          <div className="game-grid">
+            {[1, 2, 3, 4].map((n) => (
+              <Skeleton key={n} className="h-72 rounded-xl" />
+            ))}
+          </div>
+        ) : !filtered.length ? (
+          <Empty className="empty-state">
+            <Gamepad2 size={40} />
+            <EmptyTitle>No games here yet</EmptyTitle>
+            <EmptyDescription>
+              {query ||
+              platform !== 'All platforms' ||
+              genre !== 'All genres' ||
+              status !== 'All statuses'
+                ? 'Try a different search or clear your filters.'
+                : 'Add a game to start this part of your collection.'}
+            </EmptyDescription>
+            <button className="primary" onClick={addGame}>
+              <Plus size={18} /> Add game
+            </button>
+          </Empty>
+        ) : layout === 'grid' ? (
+          <div className="game-grid">
+            {filtered.slice(0, limit).map((g) => (
+              <article className="game-card" key={g.id}>
+                <button
+                  className="game-card-main"
+                  onClick={() => setDraft(structuredClone(g))}
+                >
+                  <div className={`game-art ${scoreTone(g.values.Score)}`}>
+                    <div className="card-top">
+                      <span>{display(g.values.Platform) || 'NO PLATFORM'}</span>
+                      {g.values.Score !== '' &&
+                        g.values.Score !== undefined && (
+                          <b>{display(g.values.Score)}</b>
+                        )}
+                    </div>
+                    <GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="card" />
+                    <span>{display(g.values.Genre) || 'GAME COLLECTION'}</span>
+                  </div>
+                  <div className="game-info">
+                    <h2>{title(g, fields).replace(/^\*\*|\*\*$/g, '')}</h2>
+                    <p>{display(g.values.Studio) || 'Studio not set'}</p>
+                    {contains(g, 'Status', 'Currently Playing') && (
+                      <span className="playing">
+                        <span />
+                        Currently playing
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <div className="card-bottom">
+                  <span>{display(g.values.Ownership) || 'Uncategorized'}</span>
+                  {safeLink(g.values.Link) ? (
+                    <a
+                      className="game-link"
+                      href={safeLink(g.values.Link)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Open website for ${title(g, fields)}`}
+                    >
+                      Link <ArrowUpRight size={17} />
+                    </a>
+                  ) : (
+                    <span className="no-link">No link</span>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <Table className="library-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Game</TableHead>
+                {fields
+                  .filter((f) => f.id !== 'Title')
+                  .map((f) => (
+                    <TableHead key={f.id}>{f.name}</TableHead>
+                  ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.slice(0, limit).map((g) => (
+                <TableRow key={g.id}>
+                  <TableCell>
+                    <button
+                      className="table-title"
+                      onClick={() => setDraft(structuredClone(g))}
+                    >
+                      <GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="list" />
+                      <span>{title(g, fields)}</span>
+                    </button>
+                  </TableCell>
+                  {fields
+                    .filter((f) => f.id !== 'Title')
+                    .map((f) => (
+                      <TableCell key={f.id}>
+                        {f.type === 'url' && safeLink(g.values[f.id]) ? (
+                          <a
+                            className="table-link"
+                            href={safeLink(g.values[f.id])}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Open link <ArrowUpRight size={15} />
+                          </a>
+                        ) : (
+                          display(g.values[f.id]) || '—'
+                        )}
+                      </TableCell>
+                    ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+        {filtered.length > limit && (
+          <div className="load-more">
+            <button className="quiet" onClick={() => setLimit(limit + 48)}>
+              Show more games · {filtered.length - limit} remaining
+            </button>
+          </div>
+        )}
+        <footer>
+          <span>
+            GameAtlas <span className="footer-dot">•</span> Your collection,
+            your way.
+          </span>
+          <button className="text-button" onClick={() => setSettings(true)}>
+            Properties & backups
+          </button>
+        </footer>
+      </section>
+      <Dialog
+        open={!!draft}
+        onOpenChange={(o) => !o && !busy && setDraft(null)}
+      >
+        <DialogContent className="editor">
+          <DialogTitle>
+            {draft && games.some((g) => g.id === draft.id)
+              ? 'Edit game'
+              : 'Add a game'}
+          </DialogTitle>
+          <DialogDescription>
+            Keep every detail of your collection in one place.
+          </DialogDescription>
+          {draft && (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (lookupBusy) return;
+                if (
+                  fields.some((f) => f.id === 'Title') &&
+                  !display(draft.values.Title).trim()
+                ) {
+                  setError('Enter a game title before saving.');
+                  return;
+                }
+                if (
+                  data &&
+                  (await save({
+                    ...data,
+                    games: games.some((g) => g.id === draft.id)
+                      ? games.map((g) => (g.id === draft.id ? draft : g))
+                      : [...games, draft],
+                  }))
+                )
+                  setDraft(null);
+              }}
+            >
+              {!isNewGame && (
+                <button
+                  type="button"
+                  className="quiet"
+                  disabled={lookupBusy}
+                  onClick={() => {
+                    setArtworkGameId(draft.id);
+                    setLookupQuery(title(draft, fields));
+                    setLookupRetry((n) => n + 1);
+                  }}
+                >
+                  <Search size={16} /> Find artwork & description
+                </button>
+              )}
+              {(isNewGame || artworkLookup) && (
+                <section
+                  className="game-lookup"
+                  aria-label="Automatic game lookup"
+                >
+                  <div className="field">
+                    <label htmlFor="game-lookup">
+                      Paste a game title or link
+                    </label>
+                    <input
+                      id="game-lookup"
+                      value={lookupQuery}
+                      placeholder="e.g. Hades, or an IGN / Steam / Wikipedia link"
+                      autoComplete="off"
+                      onChange={(e) => setLookupQuery(e.target.value)}
+                    />
+                  </div>
+                  <p className="muted">
+                    {isNewGame
+                      ? 'Details appear automatically. Preferred link: IGN → Steam for PC → Wikipedia. Your ownership, progress, and personal notes are yours to fill in.'
+                      : 'Choose the correct game to add its artwork and short description. Save game keeps your selection.'}
+                  </p>
+                  <div
+                    className="lookup-status"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {lookupBusy && (
+                      <RefreshCw size={16} className="lookup-spinner" />
+                    )}
+                    <span>{lookupStatus}</span>
+                  </div>
+                  {lookupMatches.length > 0 && (
+                    <div className="lookup-matches" aria-label="Game matches">
+                      {lookupMatches.map((c) => (
+                        <button
+                          type="button"
+                          className="lookup-match"
+                          key={`${c.wikiId}-${c.steamId}`}
+                          disabled={lookupBusy}
+                          onClick={() => {
+                            lookupAbort.current?.abort();
+                            const controller = new AbortController();
+                            lookupAbort.current = controller;
+                            void fillGame(c, controller, draft.id);
+                          }}
+                        >
+                          <strong>{c.name}</strong>
+                          <span>{c.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {lookupQuery.trim().length >= 2 && (
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={lookupBusy}
+                      onClick={() => setLookupRetry((n) => n + 1)}
+                    >
+                      Search again
+                    </button>
+                  )}
+                </section>
+              )}
+              {draft.lookup && (
+                <div className="lookup-sources">
+                  {safeLink(draft.lookup.coverUrl) && (
+                    <img
+                      key={draft.lookup.coverUrl}
+                      className="lookup-cover"
+                      src={artworkUrl(safeLink(draft.lookup.coverUrl))}
+                      alt="Game cover"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.hidden = true;
+                      }}
+                    />
+                  )}
+                  <div>
+                    {draft.lookup.description && (
+                      <p>{draft.lookup.description}</p>
+                    )}
+                    <p>
+                      Sources:{' '}
+                      {draft.lookup.sources.map((s) => (
+                        <a
+                          key={s.url}
+                          href={safeLink(s.url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {s.name} ↗{' '}
+                        </a>
+                      ))}
+                    </p>
+                    {draft.lookup.scoreSource && (
+                      <p>Score: {draft.lookup.scoreSource}</p>
+                    )}
+                    {draft.lookup.releaseNote && (
+                      <p>Release details: {draft.lookup.releaseNote}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div className="field-grid">
+                {fields.map((f) => (
+                  <div
+                    className={`field ${f.type === 'multi_select' || f.id === 'Notes' ? 'wide' : ''}`}
+                    key={f.id}
+                  >
+                    <label htmlFor={`edit-${f.id}`}>{f.name}</label>
+                    {f.type === 'multi_select' ? (
+                      <div className="choices" role="group" aria-label={f.name}>
+                        {Array.from(
+                          new Set([
+                            ...f.options,
+                            ...(Array.isArray(draft.values[f.id])
+                              ? (draft.values[f.id] as string[])
+                              : []),
+                          ]),
+                        ).map((o) => (
+                          <label className="choice" key={o}>
+                            <Checkbox
+                              checked={
+                                Array.isArray(draft.values[f.id]) &&
+                                (draft.values[f.id] as string[]).includes(o)
+                              }
+                              onCheckedChange={(checked) => {
+                                const values = Array.isArray(draft.values[f.id])
+                                  ? (draft.values[f.id] as string[])
+                                  : [];
+                                setDraft({
+                                  ...draft,
+                                  values: {
+                                    ...draft.values,
+                                    [f.id]: checked
+                                      ? [...values, o]
+                                      : values.filter((v) => v !== o),
+                                  },
+                                });
+                              }}
+                            />
+                            {o}
+                          </label>
+                        ))}
+                        {!f.options.length && (
+                          <span className="muted">
+                            Add choices in Properties & backups.
+                          </span>
+                        )}
+                      </div>
+                    ) : f.type === 'checkbox' ? (
+                      <Checkbox
+                        id={`edit-${f.id}`}
+                        checked={draft.values[f.id] === true}
+                        onCheckedChange={(v) =>
+                          setDraft({
+                            ...draft,
+                            values: { ...draft.values, [f.id]: v },
+                          })
+                        }
+                      />
+                    ) : f.id === 'Notes' ? (
+                      <textarea
+                        id={`edit-${f.id}`}
+                        rows={3}
+                        value={display(draft.values[f.id])}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            values: { ...draft.values, [f.id]: e.target.value },
+                          })
+                        }
+                      />
+                    ) : (
+                      <input
+                        id={`edit-${f.id}`}
+                        type={
+                          f.type === 'number'
+                            ? 'number'
+                            : f.type === 'date'
+                              ? 'date'
+                              : f.type === 'url'
+                                ? 'url'
+                                : 'text'
+                        }
+                        step="any"
+                        value={display(draft.values[f.id])}
+                        onChange={(e) => {
+                          if (f.id === 'Title' && isNewGame)
+                            setLookupQuery(e.target.value);
+                          setDraft({
+                            ...draft,
+                            values: {
+                              ...draft.values,
+                              [f.id]:
+                                f.type === 'number' && e.target.value !== ''
+                                  ? Number(e.target.value)
+                                  : e.target.value,
+                            },
+                          });
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
+                {fields.some((f) => f.id === 'Release Date') && (
+                  <div className="field">
+                    <label htmlFor="end-date">
+                      Release date range end (optional)
+                    </label>
+                    <input
+                      id="end-date"
+                      type="date"
+                      value={draft.dateEnd?.slice(0, 10) ?? ''}
+                      onChange={(e) =>
+                        setDraft({ ...draft, dateEnd: e.target.value })
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+              {error && (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              )}
+              <div className="editor-actions">
+                {games.some((g) => g.id === draft.id) && (
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={busy}
+                    onClick={() =>
+                      setConfirm({
+                        title: 'Remove this game?',
+                        body: `Remove ${title(draft, fields)} from your library. A downloaded backup can restore it later.`,
+                        run: async () => {
+                          if (
+                            data &&
+                            (await save({
+                              ...data,
+                              games: games.filter((g) => g.id !== draft.id),
+                            }))
+                          ) {
+                            setConfirm(null);
+                            setDraft(null);
+                          }
+                        },
+                      })
+                    }
+                  >
+                    <Trash2 size={17} />
+                    Remove
+                  </button>
+                )}
+                {contains(draft, 'Ownership', 'Wish List') && (
+                  <button
+                    className="quiet"
+                    type="button"
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        values: {
+                          ...draft.values,
+                          Ownership: Array.from(
+                            new Set([
+                              ...(Array.isArray(draft.values.Ownership)
+                                ? draft.values.Ownership
+                                : []
+                              ).filter((x) => x !== 'Wish List'),
+                              'Physical',
+                            ]),
+                          ),
+                        },
+                      })
+                    }
+                  >
+                    Mark as purchased
+                  </button>
+                )}
+                <button
+                  className="primary"
+                  type="submit"
+                  disabled={busy || lookupBusy}
+                >
+                  <Check size={18} />
+                  {busy ? 'Saving…' : 'Save game'}
+                </button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={settings} onOpenChange={setSettings}>
+        <DialogContent className="editor settings-editor">
+          <DialogTitle>Properties & backups</DialogTitle>
+          <DialogDescription>
+            Shape the library around how you collect.
+          </DialogDescription>
+          <div className="settings-section">
+            <div className="section-heading">
+              <h2>Your properties</h2>
+              <button className="quiet" onClick={() => startField()}>
+                <Plus size={16} /> Add property
+              </button>
+            </div>
+            <div className="property-list">
+              {fields.map((f) => (
+                <button
+                  key={f.id}
+                  className="property-row"
+                  onClick={() => startField(f)}
+                >
+                  <span>{f.name}</span>
+                  <small>{f.type.replace('_', ' ')}</small>
+                  <Settings2 size={16} />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="settings-section">
+            <h2>Keep a copy</h2>
+            <p className="muted">
+              Backups include all games, properties, and choices. Download one
+              before making large changes.
+            </p>
+            <div className="backup-buttons">
+              <button onClick={() => { void window.gameAtlas.openBackups().then(error => { if(error) setError(error); }).catch(e => setError(String(e))); }}>Open automatic backups</button>
+              <button onClick={() => { void window.gameAtlas.chooseBackupFolder().then(chosen => {if(chosen) setNotice('Backup folder selected');}).catch(e => setError(String(e))); }}>Choose backup folder</button>
+              <button className="quiet" onClick={download} disabled={!data}>
+                <Download size={17} /> Save backup
+              </button>
+              <button
+                className="quiet"
+                onClick={() => fileRef.current?.click()}
+                disabled={!data}
+              >
+                Restore backup
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".json,application/json"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void restore(file);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+          </div>
+          <div className="settings-section">
+            <h2>Your Windows library</h2><p className="muted">Your collection is saved on this PC and works offline. Internet is only needed for game searches and new artwork. Automatic backups are created before saves. Choose a Google Drive folder to keep an additional copy after each save. Existing installed data is preserved when you upgrade.</p>
+          </div>
+          {error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!fieldDraft}
+        onOpenChange={(o) => !o && !busy && setFieldDraft(null)}
+      >
+        <DialogContent className="property-editor">
+          <DialogTitle>
+            {fields.some((f) => f.id === fieldDraft?.id)
+              ? 'Edit property'
+              : 'Add property'}
+          </DialogTitle>
+          <DialogDescription>
+            Rename a property without losing its values. Removing a choice keeps
+            existing game values until you edit them.
+          </DialogDescription>
+          {fieldDraft && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void saveField();
+              }}
+            >
+              <div className="field">
+                <label htmlFor="property-name">Property name</label>
+                <input
+                  id="property-name"
+                  required
+                  maxLength={100}
+                  value={fieldDraft.name}
+                  onChange={(e) =>
+                    setFieldDraft({ ...fieldDraft, name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="field">
+                <label>Type</label>
+                <Pick
+                  value={fieldDraft.type}
+                  onChange={(v) =>
+                    setFieldDraft({ ...fieldDraft, type: v as Field['type'] })
+                  }
+                  options={[
+                    'text',
+                    'multi_select',
+                    'number',
+                    'date',
+                    'url',
+                    'checkbox',
+                  ]}
+                  label="Property type"
+                />
+              </div>
+              {fieldDraft.type === 'multi_select' && (
+                <div className="field">
+                  <label htmlFor="options">Choices — one per line</label>
+                  <textarea
+                    id="options"
+                    rows={8}
+                    value={optionText}
+                    onChange={(e) => setOptionText(e.target.value)}
+                  />
+                </div>
+              )}
+              {error && (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              )}
+              <div className="editor-actions">
+                {fields.some((f) => f.id === fieldDraft.id) && (
+                  <button
+                    className="danger"
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      setConfirm({
+                        title: 'Remove this property?',
+                        body: `Delete ${fieldDraft.name} and its values from every game. Download a backup first if you want to keep them.`,
+                        run: async () => {
+                          if (
+                            data &&
+                            (await save({
+                              ...data,
+                              fields: fields.filter(
+                                (f) => f.id !== fieldDraft.id,
+                              ),
+                              games: games.map((g) => ({
+                                ...g,
+                                values: Object.fromEntries(
+                                  Object.entries(g.values).filter(
+                                    ([key]) => key !== fieldDraft.id,
+                                  ),
+                                ),
+                              })),
+                            }))
+                          ) {
+                            setConfirm(null);
+                            setFieldDraft(null);
+                          }
+                        },
+                      })
+                    }
+                  >
+                    <Trash2 size={16} />
+                    Remove
+                  </button>
+                )}
+                <button className="primary" disabled={busy} type="submit">
+                  {busy ? 'Saving…' : 'Save property'}
+                </button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+      <AlertDialog
+        open={!!confirm}
+        onOpenChange={(o) => !o && !busy && setConfirm(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogTitle>{confirm?.title}</AlertDialogTitle>
+          <AlertDialogDescription>{confirm?.body}</AlertDialogDescription>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busy}
+              onClick={() => void confirm?.run()}
+            >
+              {busy ? 'Saving…' : 'Confirm'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {notice && (
+        <div role="status" className="save-notice">
+          <Check size={17} />
+          {notice}
+        </div>
+      )}
+    </main>
+  );
+}
