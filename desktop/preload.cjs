@@ -5,4 +5,3 @@ contextBridge.exposeInMainWorld('gameAtlas', {
  chooseBackupFolder: () => ipcRenderer.invoke('backup-folder'),
  openBackups: () => ipcRenderer.invoke('open-backups')
 });
-

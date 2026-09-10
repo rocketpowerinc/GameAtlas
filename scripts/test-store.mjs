@@ -22,4 +22,3 @@ try{
  const restored=store.save({...backup,revision:store.read().revision});assert.deepEqual(restored.games,original.games);
  console.log('PASS: 509-game migration, persistence, revision conflicts, validation, automatic backup, restore.');
 }finally{store?.close();rmSync(dir,{recursive:true,force:true});}
-

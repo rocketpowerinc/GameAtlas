@@ -7,4 +7,3 @@ export async function desktopRequest(path:string,options:RequestInit={}){
  return {ok:result.ok,json:async()=>result.data};
 }
 export const artworkUrl=(url?:string)=>url?'atlas://art/?url='+encodeURIComponent(url):'';
-

@@ -110,4 +110,3 @@ app.whenReady().then(async()=>{
 }).catch(e=>{console.error(e);if(!smoke)dialog.showErrorBox('GameAtlas could not start',String(e));app.exit(1);});
 app.on('window-all-closed',()=>app.quit());
 app.on('will-quit',()=>store?.close());
-

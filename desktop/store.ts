@@ -34,4 +34,3 @@ export class LibraryStore {
  }
  close(){this.db.close();}
 }
-

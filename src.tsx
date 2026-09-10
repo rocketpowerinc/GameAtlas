@@ -7,4 +7,3 @@ import '@fontsource/geist/latin-600.css';
 import '@fontsource/geist/latin-700.css';
 import './app/globals.css';
 createRoot(document.getElementById('root')!).render(<Home/>);
-
