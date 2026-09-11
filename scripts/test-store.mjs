@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 const require=createRequire(import.meta.url);
 const {LibraryStore}=require('../desktop-dist/store.cjs');
+const {readBackup}=require('../desktop-dist/backup.cjs');
 const dir=mkdtempSync(join(tmpdir(),'gameatlas-store-test-'));
 let store;
 try{
@@ -17,7 +18,7 @@ try{
  const invalid=structuredClone(saved);invalid.games.push(invalid.games[0]);assert.throws(()=>store.save(invalid),/Duplicate/);
  store.close();store=new LibraryStore(dir,resolve('data/library.json'));assert.equal(store.read().games[0].values.Title,'Persistence test');
  const snapshots=readdirSync(store.backupDir).filter(x=>x.startsWith('before-save-'));
- assert.equal(snapshots.length,1);const backup=JSON.parse(readFileSync(join(store.backupDir,snapshots[0]),'utf8'));
+ assert.equal(snapshots.length,1);const backup=readBackup(join(store.backupDir,snapshots[0])).library;
  assert.deepEqual(backup.games,original.games);
  const restored=store.save({...backup,revision:store.read().revision});assert.deepEqual(restored.games,original.games);
  console.log('PASS: 509-game migration, persistence, revision conflicts, validation, automatic backup, restore.');

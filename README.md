@@ -9,13 +9,14 @@ The first launch imports the bundled 509-game snapshot, including the subsequent
 
 ## Storage and backups
 The live SQLite database is stored in the Windows user's application-data directory for GameAtlas (normally %APPDATA%/GameAtlas). It is independent of the source repository and installer.
-- Each save creates a snapshot of the previous collection; the latest 100 save snapshots are retained.
-- A daily snapshot is created on launch; daily snapshots are retained.
-- Save backup exports a compatible GameAtlas JSON through a native Windows dialog.
-- Choose backup folder creates an additional dated JSON after each save, suitable for Google Drive. If that location is unavailable, the app warns while retaining the successful local save.
-- Open automatic backups reveals snapshots; use Restore backup to select one. Restoring also snapshots the current collection.
-- Artwork is downloaded gradually and cached locally. Cached covers work offline. Failed downloads are retried on display or next launch. JSON exports preserve image URLs, not image bytes; include the artwork folder in a full offline archive.
-- For a complete manual archive, close GameAtlas and copy its entire application-data directory. Keep the live database outside cloud-synced folders.
+- Save complete backup creates one portable .gameatlas file containing a consistent SQLite database snapshot and the actual cached artwork bytes. All game properties, choices, descriptions, scores, source links, and metadata are preserved.
+- Manual backup first attempts missing linked thumbnails. If any cannot be downloaded, the app states the missing count and offers Cancel or an explicitly incomplete backup. Games that have no artwork URL remain without artwork.
+- Automatic pre-save and additional-folder backups include every locally cached image at that moment; they do not wait for the internet. Missing linked images are recorded in the archive and reported before restoring it.
+- The latest 20 pre-save and 7 daily complete snapshots are retained. Pre-restore safety snapshots are retained separately. Existing legacy JSON backups are left intact.
+- Choose backup folder creates additional dated .gameatlas files after saves, suitable for Google Drive. Those external copies are not automatically pruned.
+- Restore backup accepts .gameatlas and older .json backups. It validates the database and image checksums, shows the game/image counts, and creates a complete safety backup before replacement. Full restores work offline and include image files. Legacy JSON restores preserve the current cache because JSON has no image bytes.
+- Failed or interrupted restores recover the prior database/image combination, or finish cleanup if the replacement database was already committed.
+- Backup files contain collection content and artwork, not machine-specific backup-folder settings, Electron browser caches, or recursively nested historical backups. Choose a backup folder again when moving to another PC.
 - Installer upgrades preserve data. Uninstall does not deliberately delete the application-data directory.
 
 Internet is required only for game lookup, uncached artwork, and opening game websites. The desktop app and the old hosted website do not synchronize.

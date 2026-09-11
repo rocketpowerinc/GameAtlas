@@ -1,6 +1,6 @@
 {
   "name": "gameatlas",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -10,7 +10,7 @@
     "build": "vite build && node scripts/build-desktop.mjs",
     "start": "electron .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test-game-lookup.mjs && node scripts/test-store.mjs",
+    "test": "node scripts/test-game-lookup.mjs && node scripts/test-store.mjs && node scripts/test-backup.mjs",
     "test:desktop": "electron . --smoke-test",
     "dist": "npm run build && electron-builder --win nsis --x64"
   },

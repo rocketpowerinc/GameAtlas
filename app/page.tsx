@@ -506,29 +506,16 @@ export default function Home() {
     [data, view, query, platform, genre, status, sort],
   );
   async function download() {
-    try { await window.gameAtlas.exportBackup(); }
+    setBusy(true);setError('');setNotice('Preparing backup and downloading missing thumbnails…');
+    try { const message=await window.gameAtlas.exportBackup();setNotice(message); }
     catch(e) { setError(e instanceof Error ? e.message : 'Backup failed.'); }
+    finally {setBusy(false);}
   }
-  async function restore(file: File) {
-    try {
-      if (file.size > 1800000) throw new Error('Backup is too large.');
-      const next = JSON.parse(await file.text());
-      if (next.format !== 'gameatlas-v1')
-        throw new Error('Choose a GameAtlas backup file.');
-      validate(next);
-      setConfirm({
-        title: 'Restore this backup?',
-        body: `Replace this library with ${next.games.length} games and ${next.fields.length} properties from the backup. An automatic backup of your current library will be kept.`,
-        run: async () => {
-          if (data && (await save({ ...next, revision: data.revision }))) {
-            setConfirm(null);
-            setSettings(false);
-          }
-        },
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Invalid backup.');
-    }
+  async function restore() {
+    setBusy(true);setError('');
+    try {if(await window.gameAtlas.restoreBackup())window.location.reload();}
+    catch(e) {setError(e instanceof Error ? e.message : 'Restore failed.');}
+    finally {setBusy(false);}
   }
   function startField(f?: Field) {
     setFieldDraft(
@@ -1310,27 +1297,17 @@ export default function Home() {
             <div className="backup-buttons">
               <button onClick={() => { void window.gameAtlas.openBackups().then(error => { if(error) setError(error); }).catch(e => setError(String(e))); }}>Open automatic backups</button>
               <button onClick={() => { void window.gameAtlas.chooseBackupFolder().then(chosen => {if(chosen) setNotice('Backup folder selected');}).catch(e => setError(String(e))); }}>Choose backup folder</button>
-              <button className="quiet" onClick={download} disabled={!data}>
-                <Download size={17} /> Save backup
+              <button className="quiet" onClick={download} disabled={!data || busy}>
+                <Download size={17} /> {busy ? 'Please wait…' : 'Save complete backup'}
               </button>
               <button
                 className="quiet"
-                onClick={() => fileRef.current?.click()}
+                onClick={() => void restore()}
                 disabled={!data}
               >
                 Restore backup
               </button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".json,application/json"
-                hidden
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void restore(file);
-                  e.target.value = '';
-                }}
-              />
+
             </div>
           </div>
           <div className="settings-section">
