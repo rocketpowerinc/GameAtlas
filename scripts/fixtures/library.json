@@ -172,6 +172,52 @@
       ]
     }
   ],
-  "games": [],
+  "games": [
+    {
+      "id": "hades",
+      "values": {
+        "Title": "Hades",
+        "Platform": [
+          "Steam"
+        ],
+        "Ownership": [
+          "Digital"
+        ],
+        "Score": 9
+      },
+      "lookup": {
+        "description": "A test description.",
+        "coverUrl": "https://upload.wikimedia.org/wikipedia/en/c/cc/Hades_cover_art.jpg",
+        "sources": [
+          {
+            "name": "Wikipedia",
+            "url": "https://en.wikipedia.org/wiki/Hades_(video_game)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "example-two",
+      "values": {
+        "Title": "Example Two",
+        "Ownership": [
+          "Physical"
+        ]
+      },
+      "lookup": {
+        "sources": [],
+        "coverUrl": "https://example.com/test-cover.png"
+      }
+    },
+    {
+      "id": "example-three",
+      "values": {
+        "Title": "Example Three",
+        "Ownership": [
+          "Wish List"
+        ]
+      }
+    }
+  ],
   "revision": 1
 }

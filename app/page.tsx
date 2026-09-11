@@ -1,3 +1,4 @@
+import {DesktopSettings} from '@/components/desktop-settings';
 'use client';
 import {desktopRequest, artworkUrl} from '@/lib/desktop';
 import { useEffect, useMemo, useState, useRef } from 'react';
@@ -11,7 +12,7 @@ import {
   Gamepad2,
   Plus,
   Search,
-  Settings2,
+  Settings,
   LayoutGrid,
   List,
   Download,
@@ -141,14 +142,11 @@ export default function Home() {
     [limit, setLimit] = useState(48),
     [draft, setDraft] = useState<Game | null>(null),
     [settings, setSettings] = useState(false),
-    [fieldDraft, setFieldDraft] = useState<Field | null>(null),
-    [optionText, setOptionText] = useState(''),
     [confirm, setConfirm] = useState<{
       title: string;
       body: string;
       run: () => Promise<void>;
     } | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const [lookupQuery, setLookupQuery] = useState('');
   const [lookupMatches, setLookupMatches] = useState<LookupCandidate[]>([]);
   const [lookupStatus, setLookupStatus] = useState('');
@@ -505,102 +503,6 @@ export default function Home() {
         ),
     [data, view, query, platform, genre, status, sort],
   );
-  async function download() {
-    setBusy(true);setError('');setNotice('Preparing backup and downloading missing thumbnails…');
-    try { const message=await window.gameAtlas.exportBackup();setNotice(message); }
-    catch(e) { setError(e instanceof Error ? e.message : 'Backup failed.'); }
-    finally {setBusy(false);}
-  }
-  async function restore() {
-    setBusy(true);setError('');
-    try {if(await window.gameAtlas.restoreBackup())window.location.reload();}
-    catch(e) {setError(e instanceof Error ? e.message : 'Restore failed.');}
-    finally {setBusy(false);}
-  }
-  function startField(f?: Field) {
-    setFieldDraft(
-      f
-        ? structuredClone(f)
-        : { id: crypto.randomUUID(), name: '', type: 'text', options: [] },
-    );
-    setOptionText(f?.options.join('\n') ?? '');
-  }
-  async function saveField() {
-    if (!fieldDraft || !data) return;
-    const f = {
-      ...fieldDraft,
-      name: fieldDraft.name.trim(),
-      options: Array.from(
-        new Set(
-          optionText
-            .split('\n')
-            .map((x) => x.trim())
-            .filter(Boolean),
-        ),
-      ),
-    };
-    if (!f.name) {
-      setError('Give this property a name.');
-      return;
-    }
-    if (
-      fields.some(
-        (x) => x.id !== f.id && x.name.toLowerCase() === f.name.toLowerCase(),
-      )
-    ) {
-      setError('A property with that name already exists.');
-      return;
-    }
-    const old = fields.find((x) => x.id === f.id);
-    let changedGames = games;
-    try {
-      if (old && old.type !== f.type)
-        changedGames = games.map((g) => {
-          const v = g.values[f.id];
-          let val: any = v;
-          if (v !== '' && v !== undefined) {
-            if (f.type === 'number') {
-              val = Number(display(v));
-              if (!Number.isFinite(val))
-                throw new Error(
-                  'Some values are not numbers. Clear or edit those values before changing this property type.',
-                );
-            } else if (f.type === 'multi_select')
-              val = Array.isArray(v) ? v : [display(v)];
-            else if (f.type === 'checkbox') {
-              if (v !== true && v !== false && v !== 'true' && v !== 'false')
-                throw new Error(
-                  'Some values are not true or false. Edit them before converting to a checkbox.',
-                );
-              val = v === true || v === 'true';
-            } else if (f.type === 'date') {
-              val = display(v);
-              if (!/^\d{4}-\d{2}-\d{2}$/.test(val))
-                throw new Error('Date values must use YYYY-MM-DD.');
-            } else val = display(v);
-          } else
-            val =
-              f.type === 'multi_select'
-                ? []
-                : f.type === 'checkbox'
-                  ? false
-                  : '';
-          return { ...g, values: { ...g.values, [f.id]: val } };
-        });
-      if (
-        await save({
-          ...data,
-          fields: old
-            ? fields.map((x) => (x.id === f.id ? f : x))
-            : [...fields, f],
-          games: changedGames,
-        })
-      )
-        setFieldDraft(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }
   return (
     <main className="atlas">
       <header className="masthead">
@@ -610,10 +512,10 @@ export default function Home() {
         <div className="header-actions">
           <button
             className="quiet icon-button"
-            aria-label="Settings and properties"
+            aria-label="Settings"
             onClick={() => setSettings(true)}
           >
-            <Settings2 size={20} />
+            <Settings size={20} />
           </button>
           <button
             className="primary"
@@ -910,9 +812,7 @@ export default function Home() {
             GameAtlas <span className="footer-dot">•</span> Your collection,
             your way.
           </span>
-          <button className="text-button" onClick={() => setSettings(true)}>
-            Properties & backups
-          </button>
+
         </footer>
       </section>
       <Dialog
@@ -1114,7 +1014,7 @@ export default function Home() {
                         ))}
                         {!f.options.length && (
                           <span className="muted">
-                            Add choices in Properties & backups.
+                            No choices are available for this property.
                           </span>
                         )}
                       </div>
@@ -1261,179 +1161,7 @@ export default function Home() {
           )}
         </DialogContent>
       </Dialog>
-      <Dialog open={settings} onOpenChange={setSettings}>
-        <DialogContent className="editor settings-editor">
-          <DialogTitle>Properties & backups</DialogTitle>
-          <DialogDescription>
-            Shape the library around how you collect.
-          </DialogDescription>
-          <div className="settings-section">
-            <div className="section-heading">
-              <h2>Your properties</h2>
-              <button className="quiet" onClick={() => startField()}>
-                <Plus size={16} /> Add property
-              </button>
-            </div>
-            <div className="property-list">
-              {fields.map((f) => (
-                <button
-                  key={f.id}
-                  className="property-row"
-                  onClick={() => startField(f)}
-                >
-                  <span>{f.name}</span>
-                  <small>{f.type.replace('_', ' ')}</small>
-                  <Settings2 size={16} />
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="settings-section">
-            <h2>Keep a copy</h2>
-            <p className="muted">
-              Backups include all games, properties, and choices. Download one
-              before making large changes.
-            </p>
-            <div className="backup-buttons">
-              <button onClick={() => { void window.gameAtlas.openBackups().then(error => { if(error) setError(error); }).catch(e => setError(String(e))); }}>Open automatic backups</button>
-              <button onClick={() => { void window.gameAtlas.chooseBackupFolder().then(chosen => {if(chosen) setNotice('Backup folder selected');}).catch(e => setError(String(e))); }}>Choose backup folder</button>
-              <button className="quiet" onClick={download} disabled={!data || busy}>
-                <Download size={17} /> {busy ? 'Please wait…' : 'Save complete backup'}
-              </button>
-              <button
-                className="quiet"
-                onClick={() => void restore()}
-                disabled={!data}
-              >
-                Restore backup
-              </button>
-
-            </div>
-          </div>
-          <div className="settings-section">
-            <h2>Your Windows library</h2><p className="muted">Your collection is saved on this PC and works offline. Internet is only needed for game searches and new artwork. Automatic backups are created before saves. Choose a Google Drive folder to keep an additional copy after each save. Existing installed data is preserved when you upgrade.</p>
-          </div>
-          {error && (
-            <p role="alert" className="error">
-              {error}
-            </p>
-          )}
-        </DialogContent>
-      </Dialog>
-      <Dialog
-        open={!!fieldDraft}
-        onOpenChange={(o) => !o && !busy && setFieldDraft(null)}
-      >
-        <DialogContent className="property-editor">
-          <DialogTitle>
-            {fields.some((f) => f.id === fieldDraft?.id)
-              ? 'Edit property'
-              : 'Add property'}
-          </DialogTitle>
-          <DialogDescription>
-            Rename a property without losing its values. Removing a choice keeps
-            existing game values until you edit them.
-          </DialogDescription>
-          {fieldDraft && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                void saveField();
-              }}
-            >
-              <div className="field">
-                <label htmlFor="property-name">Property name</label>
-                <input
-                  id="property-name"
-                  required
-                  maxLength={100}
-                  value={fieldDraft.name}
-                  onChange={(e) =>
-                    setFieldDraft({ ...fieldDraft, name: e.target.value })
-                  }
-                />
-              </div>
-              <div className="field">
-                <label>Type</label>
-                <Pick
-                  value={fieldDraft.type}
-                  onChange={(v) =>
-                    setFieldDraft({ ...fieldDraft, type: v as Field['type'] })
-                  }
-                  options={[
-                    'text',
-                    'multi_select',
-                    'number',
-                    'date',
-                    'url',
-                    'checkbox',
-                  ]}
-                  label="Property type"
-                />
-              </div>
-              {fieldDraft.type === 'multi_select' && (
-                <div className="field">
-                  <label htmlFor="options">Choices — one per line</label>
-                  <textarea
-                    id="options"
-                    rows={8}
-                    value={optionText}
-                    onChange={(e) => setOptionText(e.target.value)}
-                  />
-                </div>
-              )}
-              {error && (
-                <p className="error" role="alert">
-                  {error}
-                </p>
-              )}
-              <div className="editor-actions">
-                {fields.some((f) => f.id === fieldDraft.id) && (
-                  <button
-                    className="danger"
-                    type="button"
-                    disabled={busy}
-                    onClick={() =>
-                      setConfirm({
-                        title: 'Remove this property?',
-                        body: `Delete ${fieldDraft.name} and its values from every game. Download a backup first if you want to keep them.`,
-                        run: async () => {
-                          if (
-                            data &&
-                            (await save({
-                              ...data,
-                              fields: fields.filter(
-                                (f) => f.id !== fieldDraft.id,
-                              ),
-                              games: games.map((g) => ({
-                                ...g,
-                                values: Object.fromEntries(
-                                  Object.entries(g.values).filter(
-                                    ([key]) => key !== fieldDraft.id,
-                                  ),
-                                ),
-                              })),
-                            }))
-                          ) {
-                            setConfirm(null);
-                            setFieldDraft(null);
-                          }
-                        },
-                      })
-                    }
-                  >
-                    <Trash2 size={16} />
-                    Remove
-                  </button>
-                )}
-                <button className="primary" disabled={busy} type="submit">
-                  {busy ? 'Saving…' : 'Save property'}
-                </button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      <DesktopSettings open={settings} onOpenChange={setSettings} onReload={reload}/>
       <AlertDialog
         open={!!confirm}
         onOpenChange={(o) => !o && !busy && setConfirm(null)}

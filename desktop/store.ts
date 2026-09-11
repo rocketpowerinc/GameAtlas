@@ -17,7 +17,6 @@ export class LibraryStore {
    this.db.prepare('INSERT INTO library VALUES (1,?,1)').run(JSON.stringify({fields:data.fields,games:data.games}));
   }
   this.recoverRestore();
-  this.snapshot('daily-'+new Date().toISOString().slice(0,10));
  }
  read():Library{const row=this.db.prepare('SELECT data,revision FROM library WHERE id=1').get()!;return {...JSON.parse(String(row.data)),revision:Number(row.revision)};}
  snapshot(label='before-save-'+Date.now()+'-'+randomUUID()){

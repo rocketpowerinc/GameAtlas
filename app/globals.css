@@ -1064,3 +1064,12 @@ footer {
 @custom-variant data-active (&:is([data-state="active"], [data-active]:not([data-active="false"])));
 @custom-variant data-horizontal (&[data-orientation="horizontal"]);
 @custom-variant data-vertical (&[data-orientation="vertical"]);
+
+.setup-choices{display:grid;gap:16px;margin-top:24px}
+.setup-choice{display:grid;grid-template-columns:32px 1fr;gap:8px 14px;text-align:left;padding:22px;border:1px solid #394553;border-radius:12px;background:#18212b;color:inherit}
+.setup-choice span{grid-column:2;color:#a8b8c8}
+.setup-choice:hover{border-color:#c9f56c}
+.backup-folder-row{display:flex;gap:12px;margin:8px 0 20px}
+.backup-folder-row input{flex:1;min-width:0}
+#backup-schedule{display:block;width:100%;padding:12px;margin:8px 0 14px;border:1px solid #394553;border-radius:8px;background:#18212b;color:#ecf2f6}
+.setup-wizard [data-slot="dialog-close"]{display:none}

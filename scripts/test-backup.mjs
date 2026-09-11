@@ -10,7 +10,7 @@ const { LibraryStore }=require('../desktop-dist/store.cjs');
 const { writeBackup,readBackup,imageKey }=require('../desktop-dist/backup.cjs');
 const root=mkdtempSync(join(tmpdir(),'gameatlas-full-test-'));
 const source=join(root,'source'),target=join(root,'target'),file=join(root,'complete.gameatlas');
-const seed=resolve('data/library.json');
+const seed=resolve('scripts/fixtures/library.json');
 let a,b;
 try{
  a=new LibraryStore(source,seed);

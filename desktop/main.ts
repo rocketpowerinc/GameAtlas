@@ -4,13 +4,14 @@ import { pathToFileURL } from 'node:url';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { LibraryStore } from './store';
+import { PreferencesStore } from './preferences';
 import { writeBackup, readBackup, missingArtwork } from './backup';
 import { searchGames, gameDetails } from '../lib/game-lookup-server';
 protocol.registerSchemesAsPrivileged([{scheme:'atlas',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true}}]);
 const smoke=process.argv.includes('--smoke-test');
 if(smoke)app.setPath('userData',join(app.getPath('temp'),'gameatlas-smoke-'+process.pid));
 if(!app.requestSingleInstanceLock())app.quit();
-let window:BrowserWindow; let store:LibraryStore;
+let window:BrowserWindow; let store:LibraryStore;let preferences:PreferencesStore;
 let backupBusy=false;let restoring=false;
 const root=join(__dirname,'../dist');
 const artHosts=['ignimgs.com','ign.com','wikimedia.org','steamstatic.com','steamcdn-a.akamaihd.net'];
@@ -37,15 +38,12 @@ async function artwork(raw:string):Promise<Response>{
  inflight.set(key,task);try{return (await task).clone();}finally{inflight.delete(key);}
 }
 function trusted(event:Electron.IpcMainInvokeEvent){if(event.sender!==window.webContents||event.senderFrame!==window.webContents.mainFrame||!event.senderFrame.url.startsWith('atlas://app/'))throw new Error('Untrusted window');}
-function mirror(){const settings=join(app.getPath('userData'),'settings.json');if(!existsSync(settings))return;
- const folder=JSON.parse(readFileSync(settings,'utf8')).backupFolder;if(!folder)return;
- mkdirSync(folder,{recursive:true});const p=join(folder,'gameatlas-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json');
- writeFileSync(p+'.tmp',JSON.stringify({format:'gameatlas-v1',...store.read()},null,2));renameSync(p+'.tmp',p);
-}
 app.whenReady().then(async()=>{
  app.setAppUserModelId('com.rocketpowerinc.gameatlas');
  mkdirSync(join(app.getPath('userData'),'artwork'),{recursive:true});
+ const existing=existsSync(join(app.getPath('userData'),'library.sqlite'));
  store=new LibraryStore(app.getPath('userData'),join(__dirname,'../data/library.json'));
+ preferences=new PreferencesStore(app.getPath('userData'),existing);
  protocol.handle('atlas',async request=>{
   try{const url=new URL(request.url);
    if(url.hostname==='art')return await artwork(url.searchParams.get('url')||'');
@@ -61,7 +59,9 @@ app.whenReady().then(async()=>{
    if(path==='/api/library'&&method==='GET')return {ok:true,data:store.read()};
    if(path==='/api/library'&&method==='PUT'){
     if(backupBusy)throw Error('Wait for the backup or restore to finish.');
-    const saved=store.save(body);let warning='';try{mirror();}catch{warning='Saved locally, but your chosen backup folder is unavailable.';}
+    if(!preferences.read().setupComplete)throw Error('Finish setup before editing your library.');
+    if(JSON.stringify(body.fields)!==JSON.stringify(store.read().fields))throw Error('Library properties cannot be added, removed, or changed.');
+    const saved=store.save(body,false);preferences.run(store,'change');const warning=preferences.error;
     return {ok:true,data:saved,warning};
    }
    if(path==='/api/game-lookup'&&method==='POST'){
@@ -77,7 +77,7 @@ app.whenReady().then(async()=>{
   trusted(event);if(backupBusy)throw Error('A backup or restore is already running.');
   backupBusy=true;
   try{
-   const {filePath}=await dialog.showSaveDialog(window,{defaultPath:'gameatlas-backup-'+new Date().toISOString().slice(0,10)+'.gameatlas',filters:[{name:'Complete GameAtlas backup',extensions:['gameatlas']}]});
+   const {filePath}=await dialog.showSaveDialog(window,{defaultPath:join(preferences.read().backupFolder,'gameatlas-backup-'+new Date().toISOString().slice(0,10)+'.gameatlas'),filters:[{name:'Complete GameAtlas backup',extensions:['gameatlas']}]});
    if(!filePath)return '';
    if(!filePath.toLowerCase().endsWith('.gameatlas'))throw Error('Save complete backups with the .gameatlas extension.');
    const pending=missingArtwork(store.read(),store.directory);
@@ -104,12 +104,27 @@ app.whenReady().then(async()=>{
    if(choice.response!==1)return false;
    restoring=true;await Promise.allSettled([...inflight.values()]);
    store.restore(backup);
-   try{mirror();}catch{await dialog.showMessageBox(window,{type:'warning',message:'Restored locally, but the additional backup folder is unavailable.'});}
+   preferences.run(store,'change');if(preferences.error)await dialog.showMessageBox(window,{type:'warning',message:preferences.error});
    return true;
   }finally{restoring=false;backupBusy=false;}
  });
- ipcMain.handle('backup-folder',async event=>{trusted(event);if(backupBusy)throw Error('Wait for the backup or restore to finish.');const result=await dialog.showOpenDialog(window,{properties:['openDirectory','createDirectory']});if(result.canceled)return false;writeFileSync(join(app.getPath('userData'),'settings.json'),JSON.stringify({backupFolder:result.filePaths[0]}));mirror();return true;});
- ipcMain.handle('open-backups',async event=>{trusted(event);return shell.openPath(store.backupDir);});
+ ipcMain.handle('start-library',async event=>{
+  trusted(event);if(preferences.read().setupComplete)throw Error('Setup is already complete.');if(backupBusy)throw Error('Wait for the current operation.');
+  if(store.read().games.length){
+   const choice=await dialog.showMessageBox(window,{type:'warning',message:'Start empty instead of keeping the imported library?',buttons:['Cancel','Start empty'],defaultId:0,cancelId:0});if(choice.response!==1)return false;
+   backupBusy=true;restoring=true;
+   try{await Promise.allSettled([...inflight.values()]);const library=JSON.parse(readFileSync(join(__dirname,'../data/library.json'),'utf8'));
+    store.restore({library,artwork:[],summary:{games:0,images:0,missing:[],createdAt:'',legacy:false}});
+   }finally{restoring=false;backupBusy=false;}
+  }
+  return true;
+ });
+ ipcMain.handle('get-settings',event=>{trusted(event);return preferences.read();});
+ ipcMain.handle('save-settings',(event,input,complete)=>{trusted(event);if(backupBusy)throw Error('Wait for backup or restore to finish.');if(typeof complete!=='boolean')throw Error('Invalid settings.');
+  preferences.configure(input,complete);preferences.run(store,'change');return preferences.read();
+ });
+ ipcMain.handle('backup-folder',async event=>{trusted(event);const result=await dialog.showOpenDialog(window,{properties:['openDirectory','createDirectory'],defaultPath:preferences.read().backupFolder});return result.canceled?'':result.filePaths[0];});
+ ipcMain.handle('open-backups',async event=>{trusted(event);const folder=preferences.read().backupFolder;mkdirSync(folder,{recursive:true});return shell.openPath(folder);});
  Menu.setApplicationMenu(null);
  window=new BrowserWindow({width:1440,height:960,minWidth:900,minHeight:650,show:!smoke,title:'GameAtlas',icon:join(__dirname,'../public/icon-512.png'),backgroundColor:'#101216',webPreferences:{preload:join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
  window.webContents.setWindowOpenHandler(({url})=>{if(/^https?:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
@@ -117,46 +132,58 @@ app.whenReady().then(async()=>{
  window.webContents.session.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
  app.on('second-instance',()=>{if(window.isMinimized())window.restore();window.focus();});
  await window.loadURL('atlas://app/');
+ preferences.run(store,'startup');
+ const schedule=setInterval(()=>{if(!backupBusy)preferences.run(store,'timer');},60000);schedule.unref();
  // Warm the cache gradually; failures are retried when a game is displayed or on the next launch.
  if(!smoke){void(async()=>{for(const game of store.read().games){if(game.lookup?.coverUrl)try{await artwork(game.lookup.coverUrl);}catch{}}})();}
  if(smoke){
   try{
-   await new Promise(r=>setTimeout(r,2000));
-   const result=await window.webContents.executeJavaScript(`(async()=>{const r=await window.gameAtlas.request('/api/library','GET');if(!r.ok||r.data.games.length!==509)throw Error('Library import failed');if(!document.querySelector('.game-card'))throw Error('Cards not rendered');const saved=await window.gameAtlas.request('/api/library','PUT',r.data);if(!saved.ok||saved.data.revision!==r.data.revision+1)throw Error('Save failed');return {games:r.data.games.length,title:document.title};})()`);
-
+   await new Promise(r=>setTimeout(r,1500));
    await window.webContents.executeJavaScript(`(async()=>{
-    const wait=()=>new Promise(r=>setTimeout(r,800));
-    document.querySelector('[aria-label="Table view"]').click();await wait();
-    if(!document.querySelector('table'))throw Error('List view failed');
-    document.querySelector('[aria-label="Grid view"]').click();await wait();
-    document.querySelector('.game-card-main').click();await wait();
-    if(!document.querySelector('[role="dialog"]'))throw Error('Editor failed');
+    const wait=()=>new Promise(r=>setTimeout(r,200));
+    const lib=(await window.gameAtlas.request('/api/library','GET')).data;
+    if(lib.games.length!==0)throw Error('Fresh install is not blank');
+    if(!document.body.textContent.includes('Welcome to GameAtlas'))throw Error('Wizard missing');
+    [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Start a new library')).click();await wait();
+    const select=document.querySelector('#backup-schedule');
+    const setter=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;setter.call(select,'manual');select.dispatchEvent(new Event('change',{bubbles:true}));await wait();
+    [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Finish setup')).click();await wait();
+    if(!(await window.gameAtlas.getSettings()).setupComplete)throw Error('Setup not saved');
+    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game'}}]});
+    if(!saved.ok)throw Error('Save failed');
+    const rejected=await window.gameAtlas.request('/api/library','PUT',{...saved.data,fields:[]});
+    if(rejected.ok)throw Error('Property editing was accepted');
+    document.querySelector('[aria-label="Refresh library"]').click();await wait();
+    if(!document.querySelector('.game-card'))throw Error('Game card missing');
+    document.querySelector('[aria-label="Settings"]').click();await wait();
+    if(document.body.textContent.includes('Properties & backups')||document.body.textContent.includes('Add property'))throw Error('Property controls remain');
    })()`);
-   mkdirSync(join(app.getPath('temp'),'gameatlas-verification'),{recursive:true});
-   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','editor.png'),(await window.webContents.capturePage()).toPNG());
-   const cover=store.read().games.find(g=>g.lookup?.coverUrl)?.lookup?.coverUrl;
-   if(cover){try{
-    const first=await artwork(cover);if(!first.ok)throw Error('Image failed');
-    const realFetch=globalThis.fetch;globalThis.fetch=async()=>{throw Error('Offline');};
-    try {const cached=await artwork(cover);if(!cached.ok)throw Error('Offline image failed');}finally{globalThis.fetch=realFetch;}
-    console.log('ARTWORK_CACHE_OK');
-   }catch(e){console.error('ARTWORK_TEST_FAILED',e);throw e;}}
-   const original=store.read();
-   const withCover=original.games.find(g=>g.lookup?.coverUrl)!;
-   store.save({...original,games:[withCover]});
-   const archivePath=join(app.getPath('temp'),'gameatlas-verification','ipc.gameatlas');
+   const archivePath=join(app.getPath('temp'),'gameatlas-wizard-'+process.pid+'.gameatlas');
    dialog.showSaveDialog=(async()=>({canceled:false,filePath:archivePath})) as typeof dialog.showSaveDialog;
    dialog.showOpenDialog=(async()=>({canceled:false,filePaths:[archivePath]})) as typeof dialog.showOpenDialog;
    dialog.showMessageBox=(async()=>({response:1,checkboxChecked:false})) as typeof dialog.showMessageBox;
    await window.webContents.executeJavaScript('window.gameAtlas.exportBackup()');
-   const exported=readBackup(archivePath);if(exported.summary.images<1||exported.summary.missing.length)throw Error('Full export missed artwork');
-   store.save({...store.read(),games:[]});
-   const restored=await window.webContents.executeJavaScript('window.gameAtlas.restoreBackup()');
-   if(!restored||JSON.stringify(store.read().games)!==JSON.stringify([withCover]))throw Error('Full restore IPC failed');
-   store.save({...original,revision:store.read().revision});
-   console.log('FULL_BACKUP_IPC_OK');
-   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,...result,packaged:app.isPackaged,completedAt:new Date().toISOString()}));
-   console.log('DESKTOP_SMOKE_OK',JSON.stringify(result));app.exit(0);
+   store.save({...store.read(),games:[]},false);
+   await window.webContents.executeJavaScript('window.gameAtlas.restoreBackup()');
+   if(store.read().games.length!==1)throw Error('Restore failed');
+   // Exercise import from the first-run wizard separately from the start-empty path.
+   store.save({...store.read(),games:[]},false);
+   writeFileSync(join(store.directory,'settings.json'),JSON.stringify({...preferences.read(),setupComplete:false}));
+   preferences=new PreferencesStore(store.directory,true);
+   await window.loadURL('atlas://app/');
+   await new Promise(r=>setTimeout(r,700));
+   await window.webContents.executeJavaScript(`(async()=>{
+    [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Import a GameAtlas library')).click();
+    for(let n=0;n<30&&!document.querySelector('#backup-schedule');n++)await new Promise(r=>setTimeout(r,100));
+    if(!document.querySelector('#backup-schedule'))throw Error('Import wizard did not reach preferences');
+    if((await window.gameAtlas.request('/api/library','GET')).data.games.length!==1)throw Error('Wizard import lost the library');
+    [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Finish setup')).click();
+    await new Promise(r=>setTimeout(r,300));
+    if(!(await window.gameAtlas.getSettings()).setupComplete)throw Error('Import setup did not persist');
+   })()`);
+   mkdirSync(join(app.getPath('temp'),'gameatlas-verification'),{recursive:true});
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,completedAt:new Date().toISOString()}));
+   console.log('WIZARD_SETTINGS_BACKUP_OK');app.exit(0);
   }catch(e){console.error(e);app.exit(1);}
  }
 }).catch(e=>{console.error(e);if(!smoke)dialog.showErrorBox('GameAtlas could not start',String(e));app.exit(1);});

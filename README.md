@@ -1,39 +1,54 @@
 # GameAtlas for Windows
 
-GameAtlas is a private, offline-first Windows desktop game library. It keeps the original cards, list, score colours, filters, property editor, wishlist, game descriptions, and game lookup.
+GameAtlas is an offline-first Windows game collection app with cards, list view, score colours, filters, wishlists, descriptions, and online game lookup.
 
-## Install
-Run the GameAtlas Setup executable from the release folder. The installer can create a desktop shortcut. Node.js and a web browser are not required. This initial build is unsigned, so Windows may show an unknown-publisher notice.
+## Install and first run
+Run the latest GameAtlas Setup executable. Node.js is not required. The installer is unsigned, so Windows may show an unknown-publisher notice.
 
-The first launch imports the bundled 509-game snapshot, including the subsequent 315-description backfill. Existing installations are never replaced by this seed. If the website has newer changes, export its GameAtlas JSON and use Properties & backups > Restore backup in the desktop app.
+A fresh installation contains **zero games**. The first-run wizard lets you:
+1. Start an empty library with the standard game fields, or import a complete .gameatlas backup or legacy JSON export.
+2. Choose a local backup folder.
+3. Choose backups after each library change, once a day, or manual only.
 
-## Storage and backups
-The live SQLite database is stored in the Windows user's application-data directory for GameAtlas (normally %APPDATA%/GameAtlas). It is independent of the source repository and installer.
-- Save complete backup creates one portable .gameatlas file containing a consistent SQLite database snapshot and the actual cached artwork bytes. All game properties, choices, descriptions, scores, source links, and metadata are preserved.
-- Manual backup first attempts missing linked thumbnails. If any cannot be downloaded, the app states the missing count and offers Cancel or an explicitly incomplete backup. Games that have no artwork URL remain without artwork.
-- Automatic pre-save and additional-folder backups include every locally cached image at that moment; they do not wait for the internet. Missing linked images are recorded in the archive and reported before restoring it.
-- The latest 20 pre-save and 7 daily complete snapshots are retained. Pre-restore safety snapshots are retained separately. Existing legacy JSON backups are left intact.
-- Choose backup folder creates additional dated .gameatlas files after saves, suitable for Google Drive. Those external copies are not automatically pruned.
-- Restore backup accepts .gameatlas and older .json backups. It validates the database and image checksums, shows the game/image counts, and creates a complete safety backup before replacement. Full restores work offline and include image files. Legacy JSON restores preserve the current cache because JSON has no image bytes.
-- Failed or interrupted restores recover the prior database/image combination, or finish cleanup if the replacement database was already committed.
-- Backup files contain collection content and artwork, not machine-specific backup-folder settings, Electron browser caches, or recursively nested historical backups. Choose a backup folder again when moving to another PC.
-- Installer upgrades preserve data. Uninstall does not deliberately delete the application-data directory.
+Existing installations retain their database and artwork. Upgrades do not clear a collection or replace it with the empty starter. Existing backup-folder preferences are retained; older installations default to backups after changes.
 
-Internet is required only for game lookup, uncached artwork, and opening game websites. The desktop app and the old hosted website do not synchronize.
+Use the cog beside Add game to reopen Settings. The footer shortcut and all property-definition editors have been removed. Game values remain editable. Imported libraries retain their existing fields; users cannot add, delete, rename, or change field definitions in the editor.
+
+## Backup scheduling
+- After changes: creates a complete local backup after a game is added, modified, or deleted.
+- Once a day: runs while the app is open, checked once per minute, using the local calendar date. If the app is closed, it catches up on the next launch.
+- Manual only: creates no scheduled backups. Use Save complete backup.
+- Settings remain changeable at any time. Automatic modes make an initial baseline when setup/settings are saved.
+- The chosen folder may be a Google Drive folder. GameAtlas writes locally; your cloud-sync software handles uploading.
+- Restore always creates a safety backup in the app's internal backups folder, including in manual mode.
+- Selected-folder scheduled backups are not automatically deleted. Prior-version backups are left intact.
+- Backup failures are reported after saving a game or in Settings; the game remains saved locally.
+
+## Complete backups and restore
+Save complete backup creates one .gameatlas file containing a consistent SQLite snapshot and cached thumbnail bytes, preserving all game metadata, descriptions, fields, choices, scores, links, and artwork references.
+
+Manual backup first attempts missing linked images. If some remain unavailable, the app reports them and lets you cancel or explicitly save with missing thumbnails. Scheduled backups include what is cached at that moment and record missing images.
+
+Restore validates the database and image checksums, creates a safety copy, and restores the collection and images together. Interrupted restores have recovery support. Older JSON imports remain supported, but have no embedded images.
+
+Machine-specific settings and nested backup histories are not included in a library backup. Choose the backup location/schedule on the new PC during setup.
+
+## Storage
+The live database and image cache normally live in %APPDATA%/GameAtlas, separately from this repository and the installer. Keep the live database outside cloud-sync folders. Installer upgrades preserve it; uninstall does not deliberately remove it.
+
+Internet is required only for lookup, uncached artwork, and opening external links. The old website and desktop app do not synchronize.
 
 ## Development
-Use Node.js 22.13 or newer on Windows.
+Use Node.js 22.13 or newer on Windows:
 - npm ci
 - npm run build
-- npm start
 - npm run typecheck
 - npm test
 - npm run test:desktop
+- npm start
 - npm run dist
 
-Build outputs are ignored by Git: dist, desktop-dist, and release. The Windows installer is produced in release. Install a newer installer to update; automatic internet updates are not configured.
+Generated outputs are ignored by Git. Installers are in release. Install newer installers manually to update. Test fixtures contain generic sample games and are not packaged.
 
-The renderer is sandboxed with Node integration disabled and context isolation enabled. Its limited preload interface validates the calling frame and request data. The app serves packaged assets through a local custom protocol; it does not run a local web server or depend on the hosted website.
-
-## Migration history
-The website source is preserved by the website-before-desktop Git tag. The desktop migration lives on codex/windows-desktop. Obsolete hosting configuration, API routes, D1 migrations, PWA files, and unused starter components were removed. The original personal backup remains in the ignored BACKUPS directory.
+The renderer uses a sandbox, context isolation, and a limited validated preload interface. No local HTTP server is used.
+The former website source is retained under the website-before-desktop Git tag; older personal exports remain in the ignored BACKUPS folder.
