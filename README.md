@@ -3,7 +3,7 @@
 GameAtlas is an offline-first Windows game collection app with cards, list view, score colours, filters, wishlists, descriptions, and online game lookup.
 
 ## Install and first run
-Run the latest GameAtlas Setup executable. Node.js is not required. The installer is unsigned, so Windows may show an unknown-publisher notice.
+Run the latest GameAtlas Setup executable from https://github.com/rocketpowerinc/GameAtlas/releases. Node.js is not required. The installer is unsigned, so Windows may show an unknown-publisher notice.
 
 A fresh installation contains **zero games**. The first-run wizard lets you:
 1. Start an empty library with the standard game fields, or import a complete .gameatlas backup or legacy JSON export.
@@ -48,7 +48,12 @@ Use Node.js 22.13 or newer on Windows:
 - npm start
 - npm run dist
 
-Generated outputs are ignored by Git. Installers are in release. Install newer installers manually to update. Test fixtures contain generic sample games and are not packaged.
+Generated outputs are ignored by Git. Installers are in release. Test fixtures contain generic sample games and are not packaged.
 
 The renderer uses a sandbox, context isolation, and a limited validated preload interface. No local HTTP server is used.
 The former website source is retained under the website-before-desktop Git tag; older personal exports remain in the ignored BACKUPS folder.
+
+## Application updates
+Settings > Check for updates uses the public GitHub latest-release API. A newer stable Windows release is downloaded automatically, verified against the GitHub asset SHA-256 digest and size, and installed after a complete safety backup. GameAtlas closes and the NSIS installer upgrades and relaunches it. No GitHub account or token is needed.
+
+Install version 1.3 manually once to obtain the updater. Older versions do not have the button. The update preserves the library and settings. No background update checks run without pressing the button. Release installers must have a matching GameAtlas.Setup.VERSION.exe name and GitHub asset digest. Missing assets, rate limits, offline access, failed verification, and installer launch errors are shown in Settings.

@@ -1,10 +1,11 @@
 import { app, BrowserWindow, ipcMain, protocol, net, shell, dialog, Menu } from 'electron';
 import { join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { LibraryStore } from './store';
 import { PreferencesStore } from './preferences';
+import { DesktopUpdater } from './updater';
 import { writeBackup, readBackup, missingArtwork } from './backup';
 import { searchGames, gameDetails } from '../lib/game-lookup-server';
 protocol.registerSchemesAsPrivileged([{scheme:'atlas',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true}}]);
@@ -44,6 +45,7 @@ app.whenReady().then(async()=>{
  const existing=existsSync(join(app.getPath('userData'),'library.sqlite'));
  store=new LibraryStore(app.getPath('userData'),join(__dirname,'../data/library.json'));
  preferences=new PreferencesStore(app.getPath('userData'),existing);
+ const updater=new DesktopUpdater(store,status=>window?.webContents.send('update-status',status));
  protocol.handle('atlas',async request=>{
   try{const url=new URL(request.url);
    if(url.hostname==='art')return await artwork(url.searchParams.get('url')||'');
@@ -119,6 +121,11 @@ app.whenReady().then(async()=>{
   }
   return true;
  });
+ ipcMain.handle('update-status',event=>{trusted(event);return updater.status;});
+ ipcMain.handle('check-updates',async event=>{
+  trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
+  backupBusy=true;try{return await updater.check();}finally{if(updater.status.state!=='installing')backupBusy=false;}
+ });
  ipcMain.handle('get-settings',event=>{trusted(event);return preferences.read();});
  ipcMain.handle('save-settings',(event,input,complete)=>{trusted(event);if(backupBusy)throw Error('Wait for backup or restore to finish.');if(typeof complete!=='boolean')throw Error('Invalid settings.');
   preferences.configure(input,complete);preferences.run(store,'change');return preferences.read();
@@ -181,6 +188,20 @@ app.whenReady().then(async()=>{
     await new Promise(r=>setTimeout(r,300));
     if(!(await window.gameAtlas.getSettings()).setupComplete)throw Error('Import setup did not persist');
    })()`);
+   const realFetch=globalThis.fetch;
+   globalThis.fetch=(async()=>Response.json({tag_name:'v'+app.getVersion(),draft:false,prerelease:false,assets:[]})) as typeof fetch;
+   try{
+    const current=await window.webContents.executeJavaScript('window.gameAtlas.checkUpdates()');if(current.state!=='current')throw Error('Check updates IPC failed');
+   }finally{globalThis.fetch=realFetch;}
+   const before=readdirSync(store.backupDir).filter(n=>n.startsWith('before-update-')).length;
+   let launched=false,finished=false;
+   const simulated=new DesktopUpdater(store,()=>{},{
+    latest:async()=>({version:'99.0.0',url:'',size:1,digest:''}),
+    download:async()=> 'test-only-not-executed.exe',
+    launch:async()=>{if(readdirSync(store.backupDir).filter(n=>n.startsWith('before-update-')).length<=before)throw Error('Update safety backup missing');launched=true;},
+    finish:()=>{finished=true;},packaged:()=>true
+   });
+   if((await simulated.check()).state!=='installing'||!launched||!finished)throw Error('Install handoff failed');
    mkdirSync(join(app.getPath('temp'),'gameatlas-verification'),{recursive:true});
    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,completedAt:new Date().toISOString()}));
    console.log('WIZARD_SETTINGS_BACKUP_OK');app.exit(0);
