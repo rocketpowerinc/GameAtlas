@@ -36,7 +36,7 @@ Machine-specific settings and nested backup histories are not included in a libr
 ## Storage
 The live database and image cache normally live in %APPDATA%/GameAtlas, separately from this repository and the installer. Keep the live database outside cloud-sync folders. Installer upgrades preserve it; uninstall does not deliberately remove it.
 
-Internet is required only for lookup, uncached artwork, and opening external links. The old website and desktop app do not synchronize.
+Internet is required only for lookup, uncached artwork, opening external links, and checking for application updates.
 
 ## Development
 Use Node.js 22.13 or newer on Windows:
@@ -51,7 +51,7 @@ Use Node.js 22.13 or newer on Windows:
 Generated outputs are ignored by Git. Installers are in release. Test fixtures contain generic sample games and are not packaged.
 
 The renderer uses a sandbox, context isolation, and a limited validated preload interface. No local HTTP server is used.
-The former website source is retained under the website-before-desktop Git tag; older personal exports remain in the ignored BACKUPS folder.
+The repository contains the Windows application. React, HTML, CSS, and Vite build its embedded Electron interface; they are required desktop components. There is no hosted application, deployment configuration, or web server in this source tree. Personal exports remain in the ignored BACKUPS folder.
 
 ## Application updates
 Settings > Check for updates uses the public GitHub latest-release API. A newer stable Windows release is downloaded automatically, verified against the GitHub asset SHA-256 digest and size, and installed after a complete safety backup. GameAtlas closes and the NSIS installer upgrades and relaunches it. No GitHub account or token is needed.
