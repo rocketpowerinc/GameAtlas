@@ -31,6 +31,8 @@ Use Dashboard at the top of the app for a live summary of the whole collection: 
 
 The dashboard includes completion progress, owned platform/genre breakdowns and the five highest-rated owned games. Click totals or chart rows to browse those games, or a ranked game to open its details. Dashboard figures ignore active library search filters and update when your library changes.
 
+The dashboard also highlights highest-rated owned backlog games, the five most represented Studio credits with average scores, and wishlist priorities with released/upcoming/undated groups. Combined Studio credits stay as entered. Wishlist date groups use saved dates, not live release checks; multi-priority games appear in each selected priority.
+
 ## Missing thumbnails
 Settings > Check for missing artwork opens a dedicated window and closes Settings. Find artwork automatically retries missing downloads and looks up games without artwork. Only a single exact title match is applied automatically. Ambiguous or unavailable results remain in Choose artwork for the rest, where you can search another title or game link, preview a downloaded match with automatic source fallback, choose an image file, or leave the game missing for now.
 

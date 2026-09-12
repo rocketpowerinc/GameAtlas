@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const {collectionStats}=createRequire(import.meta.url)('../desktop-dist/collection-stats.cjs');
-const fields=['Title','Ownership','Status','Platform','Genre','Score'].map(name=>({id:'field-'+name,name,type:'text',options:[]}));
+const fields=['Title','Ownership','Status','Platform','Genre','Score','Studio','Wishlist Priority','Release Date'].map(name=>({id:'field-'+name,name,type:'text',options:[]}));
 const game=(id,values)=>({id,values:Object.fromEntries(Object.entries(values).map(([k,v])=>['field-'+k,v]))});
 const games=[
  game('both',{Title:'Both formats',Ownership:['Physical','Digital'],Status:['Complete','Backlog'],Platform:['PC','PC','Switch'],Genre:['RPG'],Score:0}),
@@ -22,3 +22,30 @@ assert.equal(s.rated.length,2);assert.equal(s.rated[0].game.id,'backlog');assert
 const empty=collectionStats({fields:[],games:[],revision:1});assert.equal(empty.completion,0);assert.equal(empty.average,null);
 assert.equal(collectionStats({fields,games:[game('bad',{Ownership:['Digital'],Score:true})],revision:1}).rated.length,0);
 console.log('PASS: dashboard counts, overlapping ownership/status, unknown status, wishlist exclusion, deduplicated platforms, custom field IDs, empty library and valid zero scores.');
+
+const insights=collectionStats({fields,revision:1,games:[
+ game('a',{Title:'Alpha',Ownership:['Physical','Digital'],Status:['Backlog'],Studio:'Studio One',Score:9}),
+ game('b',{Title:'Beta',Ownership:['Digital'],Status:['Complete','Backlog'],Studio:'Studio One',Score:7}),
+ game('c',{Title:'Gamma',Ownership:['Physical'],Status:['Currently Playing','Backlog'],Studio:'Studio Two',Score:10}),
+ game('d',{Title:'Delta',Ownership:['Digital'],Status:['Backlog'],Studio:'Studio One',Score:''}),
+ game('zero',{Title:'Zero',Ownership:['Digital'],Status:['Backlog'],Studio:'Studio Two',Score:0}),
+ game('w1',{Title:'Future',Ownership:['Wish List'],'Wishlist Priority':['Must have','Someday'],'Release Date':'2026-09-13',Studio:'Studio One',Score:10}),
+ game('w2',{Title:'Today',Ownership:['Wish List'],'Wishlist Priority':['Want soon'],'Release Date':'2026-09-12'}),
+ game('w3',{Title:'Unknown',Ownership:['Wish List'],'Release Date':'2026-02-30'}),
+ game('w4',{Title:'Partial',Ownership:['Wish List'],'Wishlist Priority':['Custom priority'],'Release Date':'2026'}),
+]},new Date(2026,8,12,12));
+assert.deepEqual(insights.unplayedRated.map(r=>r.game.id),['a','zero']);
+assert.equal(insights.developers[0].label,'Studio One');
+assert.equal(insights.developers[0].games.length,3);
+assert.equal(insights.developers[0].ratedCount,2);
+assert.equal(insights.developers[0].average,8);
+assert.equal(insights.developers[1].average,5);
+assert.equal(insights.wishlistPriorities.find(p=>p.label==='Must have').games.length,1);
+assert.equal(insights.wishlistPriorities.find(p=>p.label==='Someday').games.length,1);
+assert.equal(insights.wishlistPriorities.find(p=>p.label==='Not set').games.length,1);
+assert.equal(insights.wishlistPriorities.find(p=>p.label==='Custom priority').games.length,1);
+assert.deepEqual(insights.releaseGroups.upcoming.map(g=>g.id),['w1']);
+assert.deepEqual(insights.releaseGroups.released.map(g=>g.id),['w2']);
+assert.equal(insights.releaseGroups.unknown.length,2);
+assert.equal(empty.unplayedRated.length,0);assert.equal(empty.developers.length,0);
+console.log('PASS: unplayed rankings exclude playing/completed/wishlist, developer counts and score averages, multiple/custom/unset priorities, date boundaries and invalid dates.');

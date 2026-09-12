@@ -209,7 +209,7 @@ app.whenReady().then(async()=>{
     const setter=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;setter.call(select,'manual');select.dispatchEvent(new Event('change',{bubbles:true}));await wait();
     [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Finish setup')).click();await wait();
     if(!(await window.gameAtlas.getSettings()).setupComplete)throw Error('Setup not saved');
-    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Backlog'],Platform:['Switch'],Genre:['Adventure'],Score:8.5}}]});
+    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Backlog'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5}}]});
     if(!saved.ok)throw Error('Save failed');
     const rejected=await window.gameAtlas.request('/api/library','PUT',{...saved.data,fields:[]});
     if(rejected.ok)throw Error('Property editing was accepted');
@@ -348,6 +348,14 @@ app.whenReady().then(async()=>{
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Dashboard').click();
     await new Promise(r=>setTimeout(r,300));
     if(!document.querySelector('.collection-dashboard'))throw Error('Dashboard navigation failed');
+    if(!document.querySelector('.dashboard-unplayed')?.textContent.includes('Test game')||!document.querySelector('.dashboard-developers')?.textContent.includes('Test Studio')||!document.querySelector('.dashboard-wishlist'))throw Error('New dashboard insights missing');
+    document.querySelector('.dashboard-developers .dashboard-ranked button').click();
+    await new Promise(r=>setTimeout(r,200));
+    if(!document.querySelector('.dashboard-filter')?.textContent.includes('Test Studio')||document.querySelectorAll('.game-card').length!==1)throw Error('Developer drill-down failed');
+    [...document.querySelectorAll('button')].find(b=>b.textContent==='Dashboard').click();
+    await new Promise(r=>setTimeout(r,200));
+    document.querySelector('.dashboard-unplayed').scrollIntoView({block:'start'});
+    await new Promise(r=>setTimeout(r,200));
    })()`);
    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','dashboard.png'),(await window.webContents.capturePage()).toPNG());
    console.log('WIZARD_SETTINGS_BACKUP_OK');app.exit(0);

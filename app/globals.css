@@ -1136,3 +1136,8 @@ footer .brand-name{font-size:inherit}
 .dashboard-filter{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;background:var(--card);border-radius:10px;margin-top:20px}
 @media(max-width:1000px){.dashboard-grid{grid-template-columns:1fr}.dashboard-totals{gap:10px}.dashboard-total{padding:16px}}
 @media(max-width:650px){.dashboard-totals{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-progress{flex-wrap:wrap}}
+
+.dashboard-credit-score{display:block;font-weight:400;color:var(--muted-foreground);font-size:12px;margin-top:5px}
+.dashboard-more{margin-top:16px}
+.dashboard-wishlist-dates{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+.dashboard-wishlist{grid-column:1 / -1}
