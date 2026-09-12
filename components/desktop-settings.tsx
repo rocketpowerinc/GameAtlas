@@ -60,8 +60,11 @@ export function DesktopSettings({open,onOpenChange,onReload}:{open:boolean;onOpe
     </div>}
     {!wizard&&<div className="settings-section">
      <h2>Application updates</h2>
-     <p className="muted">Version {update?.currentVersion||'…'}. Check GitHub for the latest release. If a newer version is available, GameAtlas will save a safety backup, close, and upgrade automatically.</p>
+     <p className="muted">Check GitHub for the latest release. If a newer version is available, GameAtlas will save a safety backup, close, and upgrade automatically.</p>
+     <div className="update-controls">
      <button className="quiet" disabled={busy||updating} onClick={()=>{setError('');void window.gameAtlas.checkUpdates().then(setUpdate).catch(e=>setError(String(e)));}}>{updating?'Updating…':'Check for updates'}</button>
+      <span className="muted">Current Version: {update?.currentVersion||'…'}</span>
+     </div>
      {update?.message&&<p role={update.state==='error'?'alert':'status'} className={update.state==='error'?'error':'muted'}>{update.message}{update.progress!==undefined?' '+update.progress+'%':''}</p>}
      {update?.state==='downloading'&&<progress max={100} value={update.progress||0} aria-label="Update download progress"/>}
     </div>}
