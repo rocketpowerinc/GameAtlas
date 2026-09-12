@@ -1,6 +1,6 @@
 {
   "name": "gameatlas",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-game-lookup.mjs && node scripts/test-store.mjs && node scripts/test-backup.mjs && node scripts/test-preferences.mjs && node scripts/test-updates.mjs",
     "test:desktop": "electron . --smoke-test",
-    "dist": "npm run build && electron-builder --win nsis --x64"
+    "dist": "npm run build && electron-builder --win nsis --x64",
+    "build:branding": "electron scripts/build-branding.cjs"
   },
   "dependencies": {},
   "devDependencies": {
@@ -56,14 +57,17 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "public/icon-512.png",
+      "icon": "public/icon.ico",
       "signExecutable": false
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "public/icon.ico",
+      "uninstallerIcon": "public/icon.ico",
+      "installerHeaderIcon": "public/icon.ico"
     },
     "asar": true
   }

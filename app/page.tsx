@@ -1,3 +1,4 @@
+import {BrandMark,BrandName} from '@/components/brand';
 import {DesktopSettings} from '@/components/desktop-settings';
 'use client';
 import {desktopRequest, artworkUrl} from '@/lib/desktop';
@@ -507,7 +508,7 @@ export default function Home() {
     <main className="atlas">
       <header className="masthead">
         <div className="brand">
-          <Gamepad2 /> GameAtlas<span>PERSONAL LIBRARY</span>
+          <BrandMark size={42}/><BrandName/><span>PERSONAL LIBRARY</span>
         </div>
         <div className="header-actions">
           <button
@@ -690,7 +691,7 @@ export default function Home() {
           </div>
         ) : !filtered.length ? (
           <Empty className="empty-state">
-            <Gamepad2 size={40} />
+            <BrandMark size={48}/>
             <EmptyTitle>No games here yet</EmptyTitle>
             <EmptyDescription>
               {query ||
@@ -809,7 +810,7 @@ export default function Home() {
         )}
         <footer>
           <span>
-            GameAtlas <span className="footer-dot">•</span> Your collection,
+            <BrandMark size={22}/><BrandName/> <span className="footer-dot">•</span> Your collection,
             your way.
           </span>
 

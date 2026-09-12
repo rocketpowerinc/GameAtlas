@@ -1,6 +1,7 @@
+import {BrandMark,BrandName} from '@/components/brand';
 import type {UpdateStatus} from '@/desktop/updater';
 import {useEffect,useState} from 'react';
-import {FolderOpen,Download,Upload,Gamepad2} from 'lucide-react';
+import {FolderOpen,Download,Upload} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import type {Preferences} from '@/desktop/preferences';
 export function DesktopSettings({open,onOpenChange,onReload}:{open:boolean;onOpenChange:(v:boolean)=>void;onReload:()=>Promise<void>}){
@@ -32,10 +33,11 @@ export function DesktopSettings({open,onOpenChange,onReload}:{open:boolean;onOpe
  }
  return <Dialog open={open||wizard||(!preferences&&!!error)} onOpenChange={v=>{if(!wizard&&!busy&&!updating)onOpenChange(v);}}>
   <DialogContent showCloseButton={!wizard} className={wizard?'editor settings-editor setup-wizard':'editor settings-editor'}>
+   <div className="settings-brand"><BrandMark size={40}/><BrandName/></div>
    <DialogTitle>{wizard?'Welcome to GameAtlas':'Settings'}</DialogTitle>
    <DialogDescription>{wizard?(step===0?'Start your own collection or bring an existing library.':'Choose how to protect your collection. You can change this in Settings later.'):'Manage local backups and restore your library.'}</DialogDescription>
    {wizard&&step===0?<div className="setup-choices">
-    <button className="setup-choice" disabled={busy||updating} onClick={()=>void start()}><Gamepad2/><strong>Start a new library</strong><span>Begin with an empty game collection.</span></button>
+    <button className="setup-choice" disabled={busy||updating} onClick={()=>void start()}><BrandMark/><strong>Start a new library</strong><span>Begin with an empty game collection.</span></button>
     <button className="setup-choice" disabled={busy||updating} onClick={()=>void importLibrary()}><Upload/><strong>Import a GameAtlas library</strong><span>Choose a complete backup or an older JSON export.</span></button>
    </div>:preferences&&<>
     <div className="settings-section">

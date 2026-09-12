@@ -1075,3 +1075,11 @@ footer {
 .setup-wizard [data-slot="dialog-close"]{display:none}
 
 .update-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+
+/* Atlas Library branding: shared with the Windows icon. */
+.brand-mark{display:inline-block;flex-shrink:0;vertical-align:middle;object-fit:contain}
+.brand-name{font-weight:750;letter-spacing:-.045em;white-space:nowrap;color:#edf2f6}
+.brand-name strong{font-weight:inherit;color:#c7f464}
+.settings-brand{display:flex;align-items:center;gap:10px;font-size:25px;margin-bottom:4px}
+footer .brand-mark{margin-right:7px}
+footer .brand-name{font-size:inherit}

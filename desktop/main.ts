@@ -146,9 +146,13 @@ app.whenReady().then(async()=>{
  if(smoke){
   try{
    await new Promise(r=>setTimeout(r,1500));
+   mkdirSync(join(app.getPath('temp'),'gameatlas-verification'),{recursive:true});
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','welcome.png'),(await window.webContents.capturePage()).toPNG());
    await window.webContents.executeJavaScript(`(async()=>{
     const wait=()=>new Promise(r=>setTimeout(r,200));
     const lib=(await window.gameAtlas.request('/api/library','GET')).data;
+    const marks=[...document.querySelectorAll('img.brand-mark')];
+    if(marks.length<2||marks.some(img=>!img.complete||!img.naturalWidth))throw Error('Brand artwork failed to load');
     if(lib.games.length!==0)throw Error('Fresh install is not blank');
     if(!document.body.textContent.includes('Welcome to GameAtlas'))throw Error('Wizard missing');
     [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Start a new library')).click();await wait();
@@ -165,6 +169,7 @@ app.whenReady().then(async()=>{
     document.querySelector('[aria-label="Settings"]').click();await wait();
     if(document.body.textContent.includes('Properties & backups')||document.body.textContent.includes('Add property'))throw Error('Property controls remain');
    })()`);
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','settings.png'),(await window.webContents.capturePage()).toPNG());
    const archivePath=join(app.getPath('temp'),'gameatlas-wizard-'+process.pid+'.gameatlas');
    dialog.showSaveDialog=(async()=>({canceled:false,filePath:archivePath})) as typeof dialog.showSaveDialog;
    dialog.showOpenDialog=(async()=>({canceled:false,filePaths:[archivePath]})) as typeof dialog.showOpenDialog;

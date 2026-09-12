@@ -1,5 +1,7 @@
 # GameAtlas for Windows
 
+![GameAtlas Atlas Library emblem](public/icon-512.png)
+
 GameAtlas is an offline-first Windows game collection app with cards, list view, score colours, filters, wishlists, descriptions, and online game lookup.
 
 ## Install and first run
@@ -37,6 +39,9 @@ Machine-specific settings and nested backup histories are not included in a libr
 The live database and image cache normally live in %APPDATA%/GameAtlas, separately from this repository and the installer. Keep the live database outside cloud-sync folders. Installer upgrades preserve it; uninstall does not deliberately remove it.
 
 Internet is required only for lookup, uncached artwork, opening external links, and checking for application updates.
+
+## Branding
+The Atlas Library emblem uses the existing lime (#c7f464) and charcoal palette. public/brand-mark.svg is the scalable master used in the app. Run npm run build:branding to regenerate the Windows icon and PNG from that master. The icon includes sizes from 16 through 256 pixels for Windows, plus a 512-pixel PNG.
 
 ## Development
 Use Node.js 22.13 or newer on Windows:
