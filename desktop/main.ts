@@ -209,12 +209,17 @@ app.whenReady().then(async()=>{
     const setter=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;setter.call(select,'manual');select.dispatchEvent(new Event('change',{bubbles:true}));await wait();
     [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Finish setup')).click();await wait();
     if(!(await window.gameAtlas.getSettings()).setupComplete)throw Error('Setup not saved');
-    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game'}}]});
+    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Backlog'],Platform:['Switch'],Genre:['Adventure'],Score:8.5}}]});
     if(!saved.ok)throw Error('Save failed');
     const rejected=await window.gameAtlas.request('/api/library','PUT',{...saved.data,fields:[]});
     if(rejected.ok)throw Error('Property editing was accepted');
     document.querySelector('[aria-label="Refresh library"]').click();await wait();
     if(!document.querySelector('.game-card'))throw Error('Game card missing');
+    [...document.querySelectorAll('button')].find(b=>b.textContent==='Dashboard').click();await wait();
+    if(!document.querySelector('.collection-dashboard')||!document.querySelector('[aria-label="Owned: 1 games"]')||!document.querySelector('[aria-label="Unplayed: 1 games"]'))throw Error('Dashboard totals are wrong');
+    document.querySelector('[aria-label="Owned: 1 games"]').click();await wait();
+    if(!document.querySelector('.dashboard-filter')||document.querySelectorAll('.game-card').length!==1)throw Error('Dashboard drill-down failed');
+    [...document.querySelectorAll('button')].find(b=>b.textContent==='Show all games').click();
     document.querySelector('[aria-label="Settings"]').click();await wait();
     if(document.body.textContent.includes('Properties & backups')||document.body.textContent.includes('Add property'))throw Error('Property controls remain');
    })()`);
@@ -336,7 +341,15 @@ app.whenReady().then(async()=>{
     if(networkCalls!==1)throw Error('Postponing triggered a download');
    }finally{globalThis.fetch=realFetch;}
    mkdirSync(join(app.getPath('temp'),'gameatlas-verification'),{recursive:true});
-   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,artworkScan:true,artworkWindow:true,previewFallback:true,updateConsent:true,releaseNotes:true,localArtworkRestore:true,completedAt:new Date().toISOString()}));
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,artworkScan:true,artworkWindow:true,previewFallback:true,updateConsent:true,releaseNotes:true,dashboard:true,localArtworkRestore:true,completedAt:new Date().toISOString()}));
+   await window.webContents.executeJavaScript(`(async()=>{
+    document.querySelector('[data-slot="dialog-close"]')?.click();
+    await new Promise(r=>setTimeout(r,200));
+    [...document.querySelectorAll('button')].find(b=>b.textContent==='Dashboard').click();
+    await new Promise(r=>setTimeout(r,300));
+    if(!document.querySelector('.collection-dashboard'))throw Error('Dashboard navigation failed');
+   })()`);
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','dashboard.png'),(await window.webContents.capturePage()).toPNG());
    console.log('WIZARD_SETTINGS_BACKUP_OK');app.exit(0);
   }catch(e){console.error(e);app.exit(1);}
  }

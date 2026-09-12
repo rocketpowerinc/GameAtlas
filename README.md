@@ -26,6 +26,11 @@ Use the cog beside Add game to reopen Settings. The footer shortcut and all prop
 - The newest 10 automatic and safety backups are kept in total across the selected folder and internal backups folder. Cleanup runs on launch and after backups; recognized backups from previous versions count toward the limit. Manual exports, unrelated files, and previously selected folders are left untouched.
 - Backup failures are reported after saving a game or in Settings; the game remains saved locally.
 
+## Collection dashboard
+Use Dashboard at the top of the app for a live summary of the whole collection: owned, completed, unplayed, wishlist, playing and total entries. Owned means Physical or Digital, with dual-format games counted once. Unplayed means Backlog excluding Complete and Currently Playing; games without a status are shown separately.
+
+The dashboard includes completion progress, owned platform/genre breakdowns and the five highest-rated owned games. Click totals or chart rows to browse those games, or a ranked game to open its details. Dashboard figures ignore active library search filters and update when your library changes.
+
 ## Missing thumbnails
 Settings > Check for missing artwork opens a dedicated window and closes Settings. Find artwork automatically retries missing downloads and looks up games without artwork. Only a single exact title match is applied automatically. Ambiguous or unavailable results remain in Choose artwork for the rest, where you can search another title or game link, preview a downloaded match with automatic source fallback, choose an image file, or leave the game missing for now.
 

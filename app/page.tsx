@@ -1,3 +1,4 @@
+import {CollectionDashboard} from '@/components/collection-dashboard';
 import {ArtworkSettings} from '@/components/artwork-settings';
 import {BrandMark,BrandName} from '@/components/brand';
 import {DesktopSettings} from '@/components/desktop-settings';
@@ -146,6 +147,8 @@ export default function Home() {
     [limit, setLimit] = useState(48),
     [draft, setDraft] = useState<Game | null>(null),
     [settings, setSettings] = useState(false),
+    [dashboard,setDashboard] = useState(false),
+    [dashboardFilter,setDashboardFilter] = useState<{label:string;ids:string[]}|null>(null),
     [artworkOpen,setArtworkOpen] = useState(false),
     [confirm, setConfirm] = useState<{
       title: string;
@@ -482,6 +485,7 @@ export default function Home() {
       games
         .filter(
           (g) =>
+            (!dashboardFilter||dashboardFilter.ids.includes(g.id)) &&
             (view === 'All games' ||
               (view === 'Physical' && contains(g, 'Ownership', 'Physical')) ||
               (view === 'Digital' && contains(g, 'Ownership', 'Digital')) ||
@@ -506,7 +510,7 @@ export default function Home() {
               : title(a, fields).localeCompare(title(b, fields)) *
                 (sort === 'Title Z–A' ? -1 : 1),
         ),
-    [data, view, query, platform, genre, status, sort],
+    [data, view, query, platform, genre, status, sort,dashboardFilter],
   );
   return (
     <main className="atlas">
@@ -515,6 +519,7 @@ export default function Home() {
           <BrandMark size={42}/><BrandName/><span>PERSONAL LIBRARY</span>
         </div>
         <div className="header-actions">
+          <button className="quiet" aria-pressed={dashboard} onClick={()=>setDashboard(!dashboard)}>{dashboard?'Back to library':'Dashboard'}</button>
           <button
             className="quiet icon-button"
             aria-label="Settings"
@@ -531,7 +536,7 @@ export default function Home() {
           </button>
         </div>
       </header>
-      <section className="collection">
+      {dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={g=>setDraft(structuredClone(g))} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setLimit(48);}}/>:<section className="collection">
         <div className="collection-heading">
           <div>
             <p className="eyebrow">YOUR COLLECTION, ALL TOGETHER</p>
@@ -565,7 +570,7 @@ export default function Home() {
             </button>
           </div>
         )}
-        <Tabs value={view} onValueChange={(v) => setView(String(v))}>
+        <Tabs value={view} onValueChange={(v) => {setView(String(v));setDashboardFilter(null);}}>
           <TabsList variant="line" className="library-tabs">
             {[
               ['All games', LibraryIcon],
@@ -596,6 +601,7 @@ export default function Home() {
             ))}
           </TabsList>
         </Tabs>
+        {dashboardFilter&&<div className="dashboard-filter" role="status"><span>Dashboard selection: <strong>{dashboardFilter.label}</strong></span><button className="quiet" onClick={()=>setDashboardFilter(null)}>Show all games</button></div>}
         <div className="filter-row">
           <div className="toolbar">
             <Search size={19} />
@@ -819,7 +825,7 @@ export default function Home() {
           </span>
 
         </footer>
-      </section>
+      </section>}
       <Dialog
         open={!!draft}
         onOpenChange={(o) => !o && !busy && setDraft(null)}
