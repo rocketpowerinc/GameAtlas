@@ -750,7 +750,7 @@ footer {
   font-size: 16px;
   min-height: 44px;
   outline-color: var(--primary);
-  color-scheme: dark;
+  color-scheme: inherit;
 }
 .field textarea {
   resize: vertical;
@@ -1141,3 +1141,51 @@ footer .brand-name{font-size:inherit}
 .dashboard-more{margin-top:16px}
 .dashboard-wishlist-dates{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
 .dashboard-wishlist{grid-column:1 / -1}
+
+/* Keep the lime identity, with deeper green for text on light surfaces. */
+:root { color-scheme: dark; }
+:root[data-theme='light'] {
+  color-scheme: light;
+  --background: #f5f7f0;
+  --foreground: #202b24;
+  --card: #ffffff;
+  --card-foreground: #202b24;
+  --popover: #ffffff;
+  --popover-foreground: #202b24;
+  --primary: #42651c;
+  --primary-foreground: #ffffff;
+  --secondary: #e8eedf;
+  --secondary-foreground: #202b24;
+  --muted: #edf0e8;
+  --muted-foreground: #596657;
+  --accent: #e4ecd9;
+  --accent-foreground: #202b24;
+  --border: #cbd4c4;
+  --input: #a6b39f;
+  --ring: #42651c;
+  --destructive: #b52640;
+}
+[data-theme='light'] .primary,
+[data-theme='light'] .save-notice { background: #c7f464; color: #15200a; }
+[data-theme='light'] .brand-name { color: var(--foreground); }
+[data-theme='light'] .brand-name strong { color: var(--primary); }
+[data-theme='light'] .brand-mark { background: #171e27; border-radius: 7px; padding: 3px; }
+[data-theme='light'] .card-bottom { color: var(--muted-foreground); }
+[data-theme='light'] .game-lookup,
+[data-theme='light'] .choice:has([data-checked]) { background: #edf5df; border-color: #9cb97b; }
+[data-theme='light'] .setup-choice,
+[data-theme='light'] #backup-schedule { background: var(--card); color: var(--foreground); border-color: var(--input); }
+[data-theme='light'] .setup-choice span { color: var(--muted-foreground); }
+[data-theme='light'] .setup-choice:hover { border-color: var(--primary); }
+[data-theme='light'] .error { background: #ffedf0; color: #92243a; border-color: #df9fac; }
+[data-theme='light'] .danger { color: #b52640; }
+[data-theme='light'] .score-exceptional { background: linear-gradient(135deg,#fff0bb,#f7edcd); color: #75560b; }
+[data-theme='light'] .score-great { background: linear-gradient(135deg,#d8f0d9,#e8f4e6); color: #286039; }
+[data-theme='light'] .score-good { background: linear-gradient(135deg,#dcecff,#edf3fa); color: #275780; }
+[data-theme='light'] .score-mixed { background: linear-gradient(135deg,#ffe6c9,#faf0e4); color: #87480e; }
+[data-theme='light'] .score-poor { background: linear-gradient(135deg,#fbdde3,#f8ecef); color: #973347; }
+[data-theme='light'] .score-unrated { background: linear-gradient(135deg,#e3e8e3,#f0f3ef); color: #566354; }
+[data-theme='light'] .game-art .card-top b { color: inherit; background: #ffffff80; border-color: currentColor; }
+[data-theme='light'] .game-thumbnail { background: #ffffff80; box-shadow: 0 2px 7px #0002; }
+@media(max-width:1050px) { .brand span { display:none; } }
+@media(max-width:650px) { .masthead { flex-wrap:wrap; } .header-actions { flex-wrap:wrap; } }

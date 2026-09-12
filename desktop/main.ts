@@ -358,6 +358,24 @@ app.whenReady().then(async()=>{
     await new Promise(r=>setTimeout(r,200));
    })()`);
    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','dashboard.png'),(await window.webContents.capturePage()).toPNG());
+
+   await window.webContents.executeJavaScript(`(async()=>{
+    document.querySelector('.theme-toggle').click();
+    await new Promise(r=>setTimeout(r,150));
+    if(document.documentElement.dataset.theme!=='light'||document.documentElement.classList.contains('dark')||getComputedStyle(document.body).backgroundColor!=='rgb(245, 247, 240)')throw Error('Light theme failed');
+    window.scrollTo(0,0);
+   })()`);
+   await new Promise(r=>setTimeout(r,200));
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','dashboard-light.png'),(await window.webContents.capturePage()).toPNG());
+   await new Promise<void>(resolve=>{window!.webContents.once('did-finish-load',()=>resolve());window!.webContents.reload();});
+   await window.webContents.executeJavaScript(`(async()=>{
+    for(let i=0;i<50&&!document.querySelector('.theme-toggle');i++)await new Promise(r=>setTimeout(r,100));
+    if(document.documentElement.dataset.theme!=='light'||localStorage.getItem('gameatlas-theme')!=='light')throw Error('Theme was not remembered');
+    document.querySelector('.theme-toggle').click();
+    await new Promise(r=>setTimeout(r,150));
+    if(document.documentElement.dataset.theme!=='dark'||!document.documentElement.classList.contains('dark')||getComputedStyle(document.body).backgroundColor!=='rgb(13, 17, 23)')throw Error('Dark theme failed');
+   })()`);
+   console.log('THEME_SWITCH_AND_PERSISTENCE_OK');
    console.log('WIZARD_SETTINGS_BACKUP_OK');app.exit(0);
   }catch(e){console.error(e);app.exit(1);}
  }

@@ -1,3 +1,4 @@
+import {saveTheme, type Theme} from '@/lib/theme';
 import {CollectionDashboard} from '@/components/collection-dashboard';
 import {ArtworkSettings} from '@/components/artwork-settings';
 import {BrandMark,BrandName} from '@/components/brand';
@@ -12,6 +13,8 @@ import {
   type LookupDetails,
 } from '@/lib/game-lookup';
 import {
+  Sun,
+  Moon,
   Gamepad2,
   Plus,
   Search,
@@ -133,6 +136,8 @@ function Pick({
   );
 }
 export default function Home() {
+  const [theme, setTheme] = useState<Theme>(() => document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+  function toggleTheme() { const next = theme === 'dark' ? 'light' : 'dark'; saveTheme(next); setTheme(next); }
   const [data, setData] = useState<Library | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -519,6 +524,7 @@ export default function Home() {
           <BrandMark size={42}/><BrandName/><span>PERSONAL LIBRARY</span>
         </div>
         <div className="header-actions">
+          <button className="quiet theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>{theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>}<span>{theme === 'dark' ? 'Light' : 'Dark'}</span></button>
           <button className="quiet" aria-pressed={dashboard} onClick={()=>setDashboard(!dashboard)}>{dashboard?'Back to library':'Dashboard'}</button>
           <button
             className="quiet icon-button"
