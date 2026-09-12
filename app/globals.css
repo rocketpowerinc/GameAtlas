@@ -1094,3 +1094,13 @@ footer .brand-name{font-size:inherit}
 .artwork-candidates{display:grid;gap:8px;max-height:230px;overflow:auto}
 .artwork-preview{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-top:16px}
 .artwork-preview img{width:120px;height:150px;object-fit:contain;background:var(--card);border-radius:8px}
+
+.artwork-window{width:min(840px,calc(100vw - 40px))!important;max-width:840px!important}
+.artwork-window h3{font-size:16px;font-weight:650;margin:24px 0 12px}
+.artwork-intro{padding:18px;background:var(--card);border-radius:12px;margin:8px 0 20px}
+.artwork-search{display:flex;gap:10px;align-items:center;margin:8px 0 16px}
+.artwork-search input{flex:1;min-width:0;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--foreground)}
+.artwork-local{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:16px 0 24px}
+.artwork-window .artwork-missing-list{max-height:340px}
+.artwork-window .artwork-preview img{width:180px;height:210px}
+.artwork-success{color:var(--primary);margin:16px 0}

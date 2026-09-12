@@ -29,14 +29,14 @@ async function artwork(raw:string):Promise<Response>{
  if(inflight.has(key))return (await inflight.get(key)!).clone();
  const task=(async()=>{
   let url=raw; let response:Response|undefined;
-  for(let n=0;n<5;n++){response=await fetch(url,{redirect:'manual',signal:AbortSignal.timeout(15000)});
+  for(let n=0;n<5;n++){response=await fetch(url,{headers:{'User-Agent':'GameAtlas/1.4 (desktop game artwork)','Accept':'image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8'},redirect:'manual',signal:AbortSignal.timeout(15000)});
    if(response.status>=300&&response.status<400){url=new URL(response.headers.get('location')||'',url).href;if(!safeArt(url))throw new Error('Unsupported redirect');continue;}break;}
-  if(!response?.ok)throw new Error('Artwork unavailable');
+  if(!response?.ok)throw new Error(response?.status===429?'The image source is limiting downloads. Please retry in a few minutes.':response?.status===403?'The image source refused the download.':'The image source is unavailable (HTTP '+response?.status+').');
   const type=response.headers.get('content-type')?.split(';')[0]||'';
   if(!['image/jpeg','image/png','image/webp','image/gif','image/avif'].includes(type))throw new Error('Unsupported image');
   const reader=response.body!.getReader(); const chunks:Uint8Array[]=[];let size=0;
   while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>10_000_000){await reader.cancel();throw new Error('Image too large');}chunks.push(value);}
-  const buffer=Buffer.concat(chunks);if(nativeImage.createFromBuffer(buffer).isEmpty())throw Error('Artwork is not a readable image.');writeFileSync(path+'.type',type);writeFileSync(path+'.tmp',buffer);renameSync(path+'.tmp',path);
+  const buffer=Buffer.concat(chunks);if(['image/png','image/jpeg'].includes(type)&&nativeImage.createFromBuffer(buffer).isEmpty())throw Error('Artwork is not a readable image.');writeFileSync(path+'.type',type);writeFileSync(path+'.tmp',buffer);renameSync(path+'.tmp',path);
   return new Response(buffer,{headers:{'Content-Type':type}});
  })();
  inflight.set(key,task);try{return (await task).clone();}finally{inflight.delete(key);}
@@ -108,7 +108,12 @@ app.whenReady().then(async()=>{
     if(JSON.stringify(body).length>3000)throw new Error('Search request too long.');
     if(body.action==='search'&&typeof body.query==='string'&&body.query.trim().length>=2&&body.query.length<=500)return {ok:true,data:await searchGames(body.query.trim())};
     const c=body.candidate;
-    if(body.action==='details'&&c&&typeof c.name==='string'&&c.name.length<=300&&(c.wikiId||c.steamId)&&[c.wikiId,c.steamId].every(id=>id===undefined||Number.isSafeInteger(id)&&id>0))return {ok:true,data:await gameDetails(c)};
+    if(['details','artwork'].includes(body.action)&&c&&typeof c.name==='string'&&c.name.length<=300&&(c.wikiId||c.steamId)&&[c.wikiId,c.steamId].every(id=>id===undefined||Number.isSafeInteger(id)&&id>0)){
+     const details=await gameDetails(c);if(body.action==='details')return {ok:true,data:details};
+     const previews=[];let failure='No downloadable artwork was found for this match.';
+     for(const url of [...new Set([details.coverUrl,...(details.coverUrls||[])].filter((u):u is string=>!!u))]){try{const r=await artwork(url);if(!r.ok)throw Error('This image source is not supported.');const bytes=Buffer.from(await r.arrayBuffer());previews.push({url,dataUrl:'data:'+r.headers.get('content-type')+';base64,'+bytes.toString('base64')});}catch(e){failure=e instanceof Error?e.message:String(e);}}
+     if(!previews.length)throw Error(failure);return {ok:true,data:{previews}};
+    }
    }
    throw new Error('Invalid request.');
   }catch(e){return {ok:false,data:{error:e instanceof Error?e.message:'Operation failed.'}};}
@@ -171,7 +176,7 @@ app.whenReady().then(async()=>{
  ipcMain.handle('backup-folder',async event=>{trusted(event);const result=await dialog.showOpenDialog(window,{properties:['openDirectory','createDirectory'],defaultPath:preferences.read().backupFolder});return result.canceled?'':result.filePaths[0];});
  ipcMain.handle('open-backups',async event=>{trusted(event);const folder=preferences.read().backupFolder;mkdirSync(folder,{recursive:true});return shell.openPath(folder);});
  Menu.setApplicationMenu(null);
- window=new BrowserWindow({width:1440,height:960,minWidth:900,minHeight:650,show:!smoke,title:'GameAtlas',icon:join(__dirname,'../public/icon-512.png'),backgroundColor:'#101216',webPreferences:{preload:join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
+ window=new BrowserWindow({width:1440,height:960,minWidth:900,minHeight:650,show:!smoke,title:'GameAtlas',icon:join(__dirname,'../public/icon-512.png'),backgroundColor:'#101216',webPreferences:{preload:join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false,offscreen:smoke}});
  window.webContents.setWindowOpenHandler(({url})=>{if(/^https?:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
  window.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith('atlas://app/')){event.preventDefault();if(/^https?:\/\//i.test(url))void shell.openExternal(url);}});
  window.webContents.session.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
@@ -215,8 +220,10 @@ app.whenReady().then(async()=>{
    try{
     await window.webContents.executeJavaScript(`(async()=>{
      const pause=()=>new Promise(r=>setTimeout(r,100));
+     [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Check for missing artwork')).click();
      for(let n=0;n<50&&!document.querySelector('.artwork-settings');n++)await pause();
-     const button=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Scrape all missing thumbnails'));
+     if(document.querySelector('.settings-editor')||document.querySelectorAll('[role="dialog"]').length!==1)throw Error('Settings remained open behind artwork window');
+     const button=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Find artwork automatically'));
      for(let n=0;n<50&&button.disabled;n++)await pause();
      if(!button||button.disabled)throw Error('Artwork scan button unavailable');
      button.click();
@@ -225,16 +232,31 @@ app.whenReady().then(async()=>{
      if(result.total!==1||result.running||result.missing.length!==1)throw Error('Artwork scan/review failed');
     })()`);
    }finally{globalThis.fetch=originalFetch;}
+   // A rejected primary cover must fall back to the other source before preview.
+   globalThis.fetch=(async(input:any)=>{
+    const url=String(input);
+    if(url.includes('upload.wikimedia.org'))return new Response('Rate limited',{status:429});
+    if(url.includes('steamstatic.com'))return new Response(readFileSync(join(__dirname,'../public/icon-512.png')),{headers:{'content-type':'image/png'}});
+    if(url.includes('appdetails'))return Response.json({'2':{success:true,data:{type:'game',name:'Test game',header_image:'https://cdn.akamai.steamstatic.com/test.png'}}});
+    if(url.includes('action=parse'))return Response.json({parse:{title:'Test game',text:{'*':'<table class="ib-video-game"><tr><td><img src="https://upload.wikimedia.org/test.jpg"></td></tr></table><p>Test description.</p>'}}});
+    return Response.json({query:{search:[]},items:[]});
+   }) as typeof fetch;
+   const preview=await window.webContents.executeJavaScript("window.gameAtlas.request('/api/game-lookup','POST',{action:'artwork',candidate:{name:'Test game',wikiId:1,steamId:2}})");
+   if(!preview.ok||preview.data.previews.length!==1||!preview.data.previews[0].url.includes('steamstatic.com')||!preview.data.previews[0].dataUrl.startsWith('data:image/png;base64,'))throw Error('Artwork preview fallback failed');
    dialog.showOpenDialog=(async()=>({canceled:false,filePaths:[join(__dirname,'../public/icon-512.png')]})) as typeof dialog.showOpenDialog;
    await window.webContents.executeJavaScript(`(async()=>{
     const pause=()=>new Promise(r=>setTimeout(r,100));
     for(let n=0;n<50&&!document.querySelector('.artwork-missing-game');n++)await pause();
-    const review=document.querySelector('.artwork-review');review.open=true;
-    document.querySelector('.artwork-missing-game').click();await pause();
+
+    document.querySelector('.artwork-missing-game').click();
+    for(let n=0;n<50;n++){await pause();const b=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Choose image file'));if(b&&!b.disabled)break;}
     [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Choose image file')).click();
     for(let n=0;n<50;n++){await pause();if(!(await window.gameAtlas.getArtworkStatus()).missing.length)break;}
     if((await window.gameAtlas.getArtworkStatus()).missing.length)throw Error('Local thumbnail selection failed');
    })()`);
+   globalThis.fetch=originalFetch;
+   await new Promise(r=>setTimeout(r,300));
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','artwork-window.png'),(await window.webContents.capturePage()).toPNG());
    const selectedArt=store.read().games[0].lookup?.coverUrl;
    if(!selectedArt?.startsWith('https://local-art.gameatlas.invalid/'))throw Error('Local artwork was not saved');
    if(!(await artwork(selectedArt)).ok)throw Error('Local artwork does not render');
@@ -277,7 +299,7 @@ app.whenReady().then(async()=>{
    });
    if((await simulated.check()).state!=='installing'||!launched||!finished)throw Error('Install handoff failed');
    mkdirSync(join(app.getPath('temp'),'gameatlas-verification'),{recursive:true});
-   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,artworkScan:true,localArtworkRestore:true,completedAt:new Date().toISOString()}));
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,artworkScan:true,artworkWindow:true,previewFallback:true,localArtworkRestore:true,completedAt:new Date().toISOString()}));
    console.log('WIZARD_SETTINGS_BACKUP_OK');app.exit(0);
   }catch(e){console.error(e);app.exit(1);}
  }

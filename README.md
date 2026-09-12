@@ -27,7 +27,7 @@ Use the cog beside Add game to reopen Settings. The footer shortcut and all prop
 - Backup failures are reported after saving a game or in Settings; the game remains saved locally.
 
 ## Missing thumbnails
-Settings > Scrape all missing thumbnails retries missing downloads and looks up games without artwork. Only a single exact title match is applied automatically. Ambiguous or unavailable results remain in Review missing thumbnails, where you can search another title or game link, preview a match, choose an image file, or leave the game missing for now.
+Settings > Check for missing artwork opens a dedicated window and closes Settings. Find artwork automatically retries missing downloads and looks up games without artwork. Only a single exact title match is applied automatically. Ambiguous or unavailable results remain in Choose artwork for the rest, where you can search another title or game link, preview a downloaded match with automatic source fallback, choose an image file, or leave the game missing for now.
 
 The scan shows progress and can stop after the current request. It changes only artwork, preserving all game properties and descriptions. A safety backup is created before a batch; successful artwork changes follow your backup schedule. Locally selected images are copied into the library and included in complete backups. Existing downloaded artwork is skipped.
 

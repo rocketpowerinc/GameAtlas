@@ -1,11 +1,10 @@
-import {ArtworkSettings} from './artwork-settings';
 import {BrandMark,BrandName} from '@/components/brand';
 import type {UpdateStatus} from '@/desktop/updater';
 import {useEffect,useState} from 'react';
 import {FolderOpen,Download,Upload} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import type {Preferences} from '@/desktop/preferences';
-export function DesktopSettings({open,onOpenChange,onReload}:{open:boolean;onOpenChange:(v:boolean)=>void;onReload:()=>Promise<void>}){
+export function DesktopSettings({open,onOpenChange,onReload,onArtwork}:{onArtwork:()=>void;open:boolean;onOpenChange:(v:boolean)=>void;onReload:()=>Promise<void>}){
  const [update,setUpdate]=useState<UpdateStatus|null>(null);
  const updating=!!update&&['checking','downloading','installing'].includes(update.state);
  useEffect(()=>{void window.gameAtlas.getUpdateStatus().then(setUpdate);return window.gameAtlas.onUpdateStatus(setUpdate);},[]);
@@ -62,7 +61,7 @@ export function DesktopSettings({open,onOpenChange,onReload}:{open:boolean;onOpe
      <button className="quiet" disabled={busy||updating} onClick={()=>void importLibrary()}><Upload size={18}/> Restore backup</button>
      <button className="quiet" disabled={busy||updating} onClick={()=>{void window.gameAtlas.openBackups().then(e=>{if(e)setError(e);}).catch(e=>setError(String(e)));}}>Open backup folder</button>
     </div>}
-    {!wizard&&<ArtworkSettings disabled={busy||updating} onBusy={setBusy} onReload={onReload}/>}
+    {!wizard&&<div className="settings-section"><h2>Game artwork</h2><p className="muted">Find missing thumbnails and choose images in a dedicated window.</p><button className="quiet" disabled={busy||updating} onClick={onArtwork}>Check for missing artwork</button></div>}
     {!wizard&&<div className="settings-section">
      <h2>Application updates</h2>
      <p className="muted">Check GitHub for the latest release. If a newer version is available, GameAtlas will save a safety backup, close, and upgrade automatically.</p>

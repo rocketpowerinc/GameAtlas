@@ -10,6 +10,7 @@ export type LookupDetails = {
   scoreSource?: string;
   releaseNote?: string;
   coverUrl?: string;
+  coverUrls?: string[];
   description?: string;
 };
 

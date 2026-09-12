@@ -273,6 +273,7 @@ export async function gameDetails(
     scoreSource: wiki?.scoreSource,
     releaseNote: wiki?.releaseNote || steam?.releaseNote,
     coverUrl: wiki?.coverUrl || steam?.coverUrl,
+    coverUrls: [...new Set([wiki?.coverUrl,steam?.coverUrl].filter((u):u is string=>!!u))],
     description: wiki?.description || steam?.description,
   };
 }

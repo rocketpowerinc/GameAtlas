@@ -38,6 +38,10 @@ try{
  const cancelled=await cancelling.run();assert.equal(cancelled.cancelled,true);assert.equal(cancelled.added,0);assert.equal(cancelled.missing.length,2);
  const failing=new ArtworkScan(store,{...services,search:async()=>{throw Error('Offline');}});
  assert.equal((await failing.run()).missing.length,2);
+ services.search=async title=>({candidates:[{name:title,wikiId:3}]});
+ services.details=async()=>({values:{},sources:[],coverUrl:'https://example/bad',coverUrls:['https://example/fallback']});
+ assert.equal((await new ArtworkScan(store,services).run()).added,2,'Fallback covers recover when the first image fails');
+ assert.equal(scan.read().missing.length,0);
  console.log('PASS: missing artwork detection, cached skips, retry, exact and ambiguous matches, metadata preservation, manual choices, failed downloads, cancellation, offline recovery.');
 }finally{store?.close();rmSync(root,{recursive:true,force:true});}
 

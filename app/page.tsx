@@ -1,3 +1,4 @@
+import {ArtworkSettings} from '@/components/artwork-settings';
 import {BrandMark,BrandName} from '@/components/brand';
 import {DesktopSettings} from '@/components/desktop-settings';
 'use client';
@@ -145,6 +146,7 @@ export default function Home() {
     [limit, setLimit] = useState(48),
     [draft, setDraft] = useState<Game | null>(null),
     [settings, setSettings] = useState(false),
+    [artworkOpen,setArtworkOpen] = useState(false),
     [confirm, setConfirm] = useState<{
       title: string;
       body: string;
@@ -1164,7 +1166,8 @@ export default function Home() {
           )}
         </DialogContent>
       </Dialog>
-      <DesktopSettings open={settings} onOpenChange={setSettings} onReload={reload}/>
+      {!artworkOpen&&<DesktopSettings open={settings} onOpenChange={setSettings} onReload={reload} onArtwork={()=>{setSettings(false);setArtworkOpen(true);}}/>}
+      {artworkOpen&&<ArtworkSettings onClose={()=>setArtworkOpen(false)} onReload={reload}/>}
       <AlertDialog
         open={!!confirm}
         onOpenChange={(o) => !o && !busy && setConfirm(null)}

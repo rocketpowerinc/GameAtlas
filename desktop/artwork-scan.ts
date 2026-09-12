@@ -46,7 +46,7 @@ export class ArtworkScan{
       else{
        const details=await this.services.details(exact[0]);
        if(this.cancelled)break;
-       if(details.coverUrl){await this.apply(target.id,details.coverUrl);recovered=true;}
+       for(const url of [...new Set([details.coverUrl,...(details.coverUrls||[])].filter((u):u is string=>!!u))]){if(this.cancelled)break;try{await this.apply(target.id,url);recovered=true;break;}catch{}}
       }
      }
      if(recovered)this.status.added++;
