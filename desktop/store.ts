@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync, readFileSync, writeFileSync, renameSync, readdirSync, unlinkSync, existsSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, renameSync, readdirSync, statSync, realpathSync, unlinkSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { validate, type Library } from '../lib/library';
@@ -7,6 +7,7 @@ import { writeBackup, type LoadedBackup } from './backup';
 export class LibraryStore {
  db: DatabaseSync;
  backupDir: string;
+ scheduledBackupDir?:string;
  constructor(readonly directory:string,seed:string){
   mkdirSync(directory,{recursive:true});
   this.backupDir=join(directory,'backups');mkdirSync(this.backupDir,{recursive:true});
@@ -22,10 +23,18 @@ export class LibraryStore {
  snapshot(label='before-save-'+Date.now()+'-'+randomUUID()){
   const path=join(this.backupDir,label+'.gameatlas');if(existsSync(path))return;
   writeBackup(this.db,this.directory,path);
-  for(const [prefix,keep] of [['before-save-',20],['daily-',7]] as const){
-   const recent=readdirSync(this.backupDir).filter(n=>n.startsWith(prefix)&&n.endsWith('.gameatlas')).sort();
-   for(const name of recent.slice(0,Math.max(0,recent.length-keep)))unlinkSync(join(this.backupDir,name));
-  }
+  this.pruneBackups(path);
+ }
+ pruneBackups(newest?:string){
+  // Only app-generated names participate; manual exports and unrelated files are untouched.
+  const generated=/^(?:gameatlas-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-\d+|before-(?:save|restore|update)-\d+(?:-[a-f0-9-]{36})?|daily-\d{4}-\d{2}-\d{2})\.gameatlas$/;
+  const folders=new Set([this.backupDir,this.scheduledBackupDir].filter((p):p is string=>!!p&&existsSync(p)).map(p=>realpathSync(p)));
+  const backups=[...folders].flatMap(folder=>readdirSync(folder,{withFileTypes:true})
+   .filter(entry=>entry.isFile()&&generated.test(entry.name))
+   .map(entry=>{const path=join(folder,entry.name);return {path,time:statSync(path).mtimeMs};}));
+  const protectedPath=newest?realpathSync(newest):undefined;
+  backups.sort((a,b)=>Number(b.path===protectedPath)-Number(a.path===protectedPath)||b.time-a.time||b.path.localeCompare(a.path));
+  for(const backup of backups.slice(10))unlinkSync(backup.path);
  }
  save(data:Library,snapshot=true):Library{
   validate(data);

@@ -22,12 +22,15 @@ export class PreferencesStore{
   this.persist();this.error='';return this.read();
  }
  run(store:LibraryStore,trigger:'startup'|'change'|'timer',date=new Date()){
-  const p=this.settings;if(!p.setupComplete||p.backupMode==='manual')return false;
+  const p=this.settings;store.scheduledBackupDir=p.backupFolder;
+  try{store.pruneBackups();}catch(e){this.error='Backup cleanup failed: '+(e instanceof Error?e.message:String(e));return false;}
+  if(!p.setupComplete||p.backupMode==='manual')return false;
   const day=[date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
   if(p.backupMode==='changes'&&trigger!=='change'||p.backupMode==='daily'&&p.lastBackupDay===day)return false;
   try{
    const name='gameatlas-'+date.toISOString().replace(/[:.]/g,'-')+'-'+store.read().revision+'.gameatlas';
    writeBackup(store.db,store.directory,join(p.backupFolder,name));
+   store.pruneBackups(join(p.backupFolder,name));
    this.settings={...p,lastBackupDay:day,lastBackupAt:date.toISOString()};this.persist();this.error='';return true;
   }catch(e){this.error='Backup could not be saved: '+(e instanceof Error?e.message:String(e));return false;}
  }
