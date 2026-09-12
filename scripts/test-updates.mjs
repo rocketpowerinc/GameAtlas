@@ -8,7 +8,7 @@ const require=createRequire(import.meta.url);
 const {newer,selectRelease,latest,download,repository}=require('../desktop-dist/update-core.cjs');
 const bytes=Buffer.from('test installer payload');
 const hash=createHash('sha256').update(bytes).digest('hex');
-const release={tag_name:'v1.10.0',draft:false,prerelease:false,assets:[{id:42,name:'GameAtlas.Setup.1.10.0.exe',state:'uploaded',size:bytes.length,digest:'sha256:'+hash}]};
+const release={tag_name:'v1.10.0',draft:false,prerelease:false,body:'New artwork workflow\nKeeps your collection.',assets:[{id:42,name:'GameAtlas.Setup.1.10.0.exe',state:'uploaded',size:bytes.length,digest:'sha256:'+hash}]};
 assert.ok(newer('1.10.0','1.9.9'));assert.ok(!newer('1.2.0','1.3.0'));assert.ok(!newer('1.3.0','1.3.0'));
 assert.throws(()=>newer('not-a-version','1.0.0'));
 assert.equal(selectRelease(release,'1.10.0'),null);
@@ -19,6 +19,8 @@ const selected=await latest('1.0.0',async(url,options)=>{
  assert.equal(url,repository+'/releases/latest');assert.equal(options.headers.Authorization,undefined);
  return Response.json(release);
 });
+assert.equal(selected.notes,release.body);
+assert.equal(selectRelease({...release,body:null},'1.0.0').notes,'');
 const directory=mkdtempSync(join(tmpdir(),'gameatlas-update-test-'));
 try{
  let calls=0;

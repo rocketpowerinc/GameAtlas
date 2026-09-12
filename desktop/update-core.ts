@@ -4,7 +4,7 @@ import {join} from 'node:path';
 import {Readable,Transform} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 export const repository='https://api.github.com/repos/rocketpowerinc/GameAtlas';
-export type UpdateRelease={version:string;url:string;size:number;digest:string};
+export type UpdateRelease={version:string;url:string;size:number;digest:string;notes?:string};
 function versionParts(raw:string){const m=/^v?(\d+)\.(\d+)\.(\d+)$/.exec(raw);if(!m)throw Error('Unsupported release version.');const parts=m.slice(1).map(Number);if(parts.some(n=>!Number.isSafeInteger(n)))throw Error('Invalid release version.');return parts;}
 export function newer(candidate:string,current:string){const a=versionParts(candidate),b=versionParts(current);for(let i=0;i<3;i++){if(a[i]!==b[i])return a[i]>b[i];}return false;}
 export function selectRelease(raw:any,current:string):UpdateRelease|null{
@@ -13,7 +13,7 @@ export function selectRelease(raw:any,current:string):UpdateRelease|null{
  const filename=new RegExp('^GameAtlas[ .]Setup[ .]'+version.replaceAll('.','\\.')+'\\.exe$','i');
  const asset=Array.isArray(raw.assets)?raw.assets.find((a:any)=>filename.test(a.name)&&a.state==='uploaded'):null;
  if(!asset||!Number.isSafeInteger(asset.id)||asset.id<=0||!Number.isSafeInteger(asset.size)||asset.size<1||asset.size>400_000_000||!/^sha256:[a-f0-9]{64}$/.test(asset.digest||''))throw Error('The new release does not have a verified Windows installer yet. Try again later.');
- return {version,url:repository+'/releases/assets/'+asset.id,size:asset.size,digest:asset.digest.slice(7)};
+ return {version,notes:typeof raw.body==='string'?raw.body.trim().slice(0,50000):'',url:repository+'/releases/assets/'+asset.id,size:asset.size,digest:asset.digest.slice(7)};
 }
 const headers=(accept:string)=>({'User-Agent':'GameAtlas-Windows-Updater',Accept:accept,'X-GitHub-Api-Version':'2022-11-28'});
 export async function latest(current:string,request:typeof fetch=fetch){

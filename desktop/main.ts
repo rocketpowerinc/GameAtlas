@@ -169,6 +169,12 @@ app.whenReady().then(async()=>{
   trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
   backupBusy=true;try{return await updater.check();}finally{if(updater.status.state!=='installing')backupBusy=false;}
  });
+ ipcMain.handle('dismiss-update',event=>{trusted(event);return updater.dismiss();});
+ ipcMain.handle('install-update',async(event,version)=>{
+  trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
+  if(typeof version!=='string')throw Error('Invalid update selection.');
+  backupBusy=true;try{return await updater.install(version);}finally{if(updater.status.state!=='installing')backupBusy=false;}
+ });
  ipcMain.handle('get-settings',event=>{trusted(event);return preferences.read();});
  ipcMain.handle('save-settings',(event,input,complete)=>{trusted(event);if(backupBusy)throw Error('Wait for backup or restore to finish.');if(typeof complete!=='boolean')throw Error('Invalid settings.');
   preferences.configure(input,complete);preferences.run(store,'change');return preferences.read();
@@ -290,16 +296,47 @@ app.whenReady().then(async()=>{
     const current=await window.webContents.executeJavaScript('window.gameAtlas.checkUpdates()');if(current.state!=='current')throw Error('Check updates IPC failed');
    }finally{globalThis.fetch=realFetch;}
    const before=readdirSync(store.backupDir).filter(n=>n.startsWith('before-update-')).length;
-   let launched=false,finished=false;
+   let launched=false,finished=false,downloads=0;
    const simulated=new DesktopUpdater(store,()=>{},{
     latest:async()=>({version:'99.0.0',url:'',size:1,digest:''}),
-    download:async()=> 'test-only-not-executed.exe',
+    download:async()=>{downloads++;return 'test-only-not-executed.exe';},
     launch:async()=>{if(readdirSync(store.backupDir).filter(n=>n.startsWith('before-update-')).length<=before)throw Error('Update safety backup missing');launched=true;},
     finish:()=>{finished=true;},packaged:()=>true
    });
-   if((await simulated.check()).state!=='installing'||!launched||!finished)throw Error('Install handoff failed');
+   try{await simulated.install('99.0.0');throw Error('Install allowed without review');}catch(e){if(!(e instanceof Error)||!e.message.includes('review'))throw e;}
+   if((await simulated.check()).state!=='available'||downloads||launched||finished)throw Error('Check installed without consent');
+   simulated.dismiss();
+   if(downloads||launched||finished)throw Error('Postponing installed the update');
+   await simulated.check();
+   try{await simulated.install('98.0.0');throw Error('Wrong release accepted');}catch(e){if(!(e instanceof Error)||!e.message.includes('review'))throw e;}
+   if((await simulated.install('99.0.0')).state!=='installing'||downloads!==1||!launched||!finished)throw Error('Confirmed install failed');
+   let networkCalls=0;
+   globalThis.fetch=(async()=>{networkCalls++;return Response.json({tag_name:'v99.0.0',draft:false,prerelease:false,body:'Clearer artwork review and faster library browsing.',assets:[{id:42,name:'GameAtlas.Setup.99.0.0.exe',state:'uploaded',size:1,digest:'sha256:'+'a'.repeat(64)}]});}) as typeof fetch;
+   try{
+    await window.webContents.executeJavaScript(`(async()=>{
+     const pause=()=>new Promise(r=>setTimeout(r,100));
+     document.querySelector('[aria-label="Settings"]').click();
+     await pause();
+     const result=await window.gameAtlas.checkUpdates();
+     if(result.state!=='available')throw Error('Release review not returned');
+     for(let n=0;n<30&&!document.querySelector('.update-review');n++)await pause();
+     const review=document.querySelector('.update-review');
+     if(!review||!review.textContent.includes('Clearer artwork review')||!review.textContent.includes('relaunch automatically'))throw Error('Release notes or relaunch message missing');
+     if(![...review.querySelectorAll('button')].some(b=>b.textContent==='Install update'))throw Error('Install choice missing');
+    })()`);
+    if(networkCalls!==1)throw Error('Checking fetched an installer before confirmation');
+    await window.webContents.executeJavaScript("document.querySelector('.update-review').scrollIntoView({block:'center'})");
+    await new Promise(r=>setTimeout(r,300));
+    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','update-review.png'),(await window.webContents.capturePage()).toPNG());
+    await window.webContents.executeJavaScript(`(async()=>{
+     [...document.querySelector('.update-review').querySelectorAll('button')].find(b=>b.textContent==='Not now').click();
+     for(let n=0;n<30&&document.querySelector('.update-review');n++)await new Promise(r=>setTimeout(r,100));
+     if(document.querySelector('.update-review'))throw Error('Not now did not dismiss review');
+    })()`);
+    if(networkCalls!==1)throw Error('Postponing triggered a download');
+   }finally{globalThis.fetch=realFetch;}
    mkdirSync(join(app.getPath('temp'),'gameatlas-verification'),{recursive:true});
-   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,artworkScan:true,artworkWindow:true,previewFallback:true,localArtworkRestore:true,completedAt:new Date().toISOString()}));
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,artworkScan:true,artworkWindow:true,previewFallback:true,updateConsent:true,releaseNotes:true,localArtworkRestore:true,completedAt:new Date().toISOString()}));
    console.log('WIZARD_SETTINGS_BACKUP_OK');app.exit(0);
   }catch(e){console.error(e);app.exit(1);}
  }
