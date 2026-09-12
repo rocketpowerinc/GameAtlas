@@ -87,6 +87,8 @@ const safeLink = (value: unknown) => {
 };
 function GameThumbnail({ url, variant }: { url?: string; variant: 'card' | 'list' }) {
   const [failed, setFailed] = useState(false);
+  useEffect(()=>setFailed(false),[url]);
+  useEffect(()=>{const retry=()=>setFailed(false);window.addEventListener('artwork-updated',retry);return()=>window.removeEventListener('artwork-updated',retry);},[]);
   const src = artworkUrl(safeLink(url));
   if (!src || failed) return variant === 'card' ? <Gamepad2 size={42} strokeWidth={1.3} /> : null;
   return <img className={`game-thumbnail game-thumbnail-${variant}`} src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;

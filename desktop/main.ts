@@ -1,8 +1,9 @@
-import { app, BrowserWindow, ipcMain, protocol, net, shell, dialog, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net, shell, dialog, Menu, nativeImage } from 'electron';
 import { join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, renameSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import {ArtworkScan} from './artwork-scan';
 import { LibraryStore } from './store';
 import { PreferencesStore } from './preferences';
 import { DesktopUpdater } from './updater';
@@ -20,9 +21,11 @@ const safeArt=(raw:string)=>{try{const u=new URL(raw);return u.protocol==='https
 const inflight=new Map<string,Promise<Response>>();
 async function artwork(raw:string):Promise<Response>{
  if(restoring)throw Error('Artwork is being restored.');
- if(!safeArt(raw))return new Response('Unsupported artwork source',{status:400});
+ const local=/^https:\/\/local-art\.gameatlas\.invalid\/[a-f0-9]{64}$/.test(raw);
+ if(!local&&!safeArt(raw))return new Response('Unsupported artwork source',{status:400});
  const key=createHash('sha256').update(raw).digest('hex'); const path=join(app.getPath('userData'),'artwork',key);
- if(existsSync(path))return new Response(readFileSync(path),{headers:{'Content-Type':readFileSync(path+'.type','utf8')}});
+ if(existsSync(path)&&existsSync(path+'.type')&&statSync(path).size>0)return new Response(readFileSync(path),{headers:{'Content-Type':readFileSync(path+'.type','utf8')}});
+ if(local)throw Error('Choose the local image again or restore a complete backup.');
  if(inflight.has(key))return (await inflight.get(key)!).clone();
  const task=(async()=>{
   let url=raw; let response:Response|undefined;
@@ -33,7 +36,7 @@ async function artwork(raw:string):Promise<Response>{
   if(!['image/jpeg','image/png','image/webp','image/gif','image/avif'].includes(type))throw new Error('Unsupported image');
   const reader=response.body!.getReader(); const chunks:Uint8Array[]=[];let size=0;
   while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>10_000_000){await reader.cancel();throw new Error('Image too large');}chunks.push(value);}
-  const buffer=Buffer.concat(chunks);writeFileSync(path+'.type',type);writeFileSync(path+'.tmp',buffer);renameSync(path+'.tmp',path);
+  const buffer=Buffer.concat(chunks);if(nativeImage.createFromBuffer(buffer).isEmpty())throw Error('Artwork is not a readable image.');writeFileSync(path+'.type',type);writeFileSync(path+'.tmp',buffer);renameSync(path+'.tmp',path);
   return new Response(buffer,{headers:{'Content-Type':type}});
  })();
  inflight.set(key,task);try{return (await task).clone();}finally{inflight.delete(key);}
@@ -45,6 +48,41 @@ app.whenReady().then(async()=>{
  const existing=existsSync(join(app.getPath('userData'),'library.sqlite'));
  store=new LibraryStore(app.getPath('userData'),join(__dirname,'../data/library.json'));
  preferences=new PreferencesStore(app.getPath('userData'),existing);
+ const scan=new ArtworkScan(store,{
+  cached:url=>{const path=join(store.directory,'artwork',createHash('sha256').update(url).digest('hex'));return existsSync(path)&&existsSync(path+'.type')&&statSync(path).size>0;},
+  download:async url=>{const response=await artwork(url);if(!response.ok)throw Error('Artwork could not be downloaded.');},
+  search:searchGames,details:gameDetails
+ });
+ ipcMain.handle('artwork-status',event=>{trusted(event);return scan.read();});
+ ipcMain.handle('cancel-artwork-scan',event=>{trusted(event);scan.cancel();});
+ ipcMain.handle('scan-artwork',async event=>{
+  trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
+  if(!preferences.read().setupComplete)throw Error('Finish setup first.');
+  backupBusy=true;
+  try{const result=await scan.run();if(result.added)preferences.run(store,'change');return {...result,error:result.error||preferences.error||undefined};}finally{backupBusy=false;}
+ });
+ ipcMain.handle('apply-artwork',async(event,id,url)=>{
+  trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
+  if(!preferences.read().setupComplete)throw Error('Finish setup first.');
+  backupBusy=true;try{await scan.apply(id,url);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);}finally{backupBusy=false;}
+ });
+ ipcMain.handle('choose-artwork-file',async(event,id)=>{
+  trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
+  if(!preferences.read().setupComplete)throw Error('Finish setup first.');
+  if(typeof id!=='string'||!store.read().games.some(g=>g.id===id))throw Error('Game no longer exists.');
+  backupBusy=true;
+  try{
+   const selected=await dialog.showOpenDialog(window,{title:'Choose a game thumbnail',properties:['openFile'],filters:[{name:'Images',extensions:['png','jpg','jpeg','webp','gif','avif']}]});
+   if(selected.canceled||!selected.filePaths[0])return false;
+   const path=selected.filePaths[0];if(statSync(path).size>10_000_000)throw Error('Choose an image smaller than 10 MB.');
+   const image=nativeImage.createFromBuffer(readFileSync(path));if(image.isEmpty())throw Error('This file is not a readable image.');
+   const size=image.getSize();const bytes=(Math.max(size.width,size.height)>1024?image.resize(size.width>=size.height?{width:1024}:{height:1024}):image).toPNG();
+   const url='https://local-art.gameatlas.invalid/'+createHash('sha256').update(bytes).digest('hex');
+   const key=createHash('sha256').update(url).digest('hex'),destination=join(store.directory,'artwork',key);
+   writeFileSync(destination+'.type','image/png');writeFileSync(destination+'.tmp',bytes);renameSync(destination+'.tmp',destination);
+   await scan.apply(id,url);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);return true;
+  }finally{backupBusy=false;}
+ });
  const updater=new DesktopUpdater(store,status=>window?.webContents.send('update-status',status));
  protocol.handle('atlas',async request=>{
   try{const url=new URL(request.url);
@@ -170,6 +208,36 @@ app.whenReady().then(async()=>{
     if(document.body.textContent.includes('Properties & backups')||document.body.textContent.includes('Add property'))throw Error('Property controls remain');
    })()`);
    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','settings.png'),(await window.webContents.capturePage()).toPNG());
+
+   // Exercise the actual Settings scan/review controls with deterministic offline sources.
+   const originalFetch=globalThis.fetch;
+   globalThis.fetch=(async()=>Response.json({query:{search:[]},items:[]})) as typeof fetch;
+   try{
+    await window.webContents.executeJavaScript(`(async()=>{
+     const pause=()=>new Promise(r=>setTimeout(r,100));
+     for(let n=0;n<50&&!document.querySelector('.artwork-settings');n++)await pause();
+     const button=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Scrape all missing thumbnails'));
+     for(let n=0;n<50&&button.disabled;n++)await pause();
+     if(!button||button.disabled)throw Error('Artwork scan button unavailable');
+     button.click();
+     for(let n=0;n<100;n++){await pause();const s=await window.gameAtlas.getArtworkStatus();if(s.total===1&&!s.running)break;}
+     const result=await window.gameAtlas.getArtworkStatus();
+     if(result.total!==1||result.running||result.missing.length!==1)throw Error('Artwork scan/review failed');
+    })()`);
+   }finally{globalThis.fetch=originalFetch;}
+   dialog.showOpenDialog=(async()=>({canceled:false,filePaths:[join(__dirname,'../public/icon-512.png')]})) as typeof dialog.showOpenDialog;
+   await window.webContents.executeJavaScript(`(async()=>{
+    const pause=()=>new Promise(r=>setTimeout(r,100));
+    for(let n=0;n<50&&!document.querySelector('.artwork-missing-game');n++)await pause();
+    const review=document.querySelector('.artwork-review');review.open=true;
+    document.querySelector('.artwork-missing-game').click();await pause();
+    [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Choose image file')).click();
+    for(let n=0;n<50;n++){await pause();if(!(await window.gameAtlas.getArtworkStatus()).missing.length)break;}
+    if((await window.gameAtlas.getArtworkStatus()).missing.length)throw Error('Local thumbnail selection failed');
+   })()`);
+   const selectedArt=store.read().games[0].lookup?.coverUrl;
+   if(!selectedArt?.startsWith('https://local-art.gameatlas.invalid/'))throw Error('Local artwork was not saved');
+   if(!(await artwork(selectedArt)).ok)throw Error('Local artwork does not render');
    const archivePath=join(app.getPath('temp'),'gameatlas-wizard-'+process.pid+'.gameatlas');
    dialog.showSaveDialog=(async()=>({canceled:false,filePath:archivePath})) as typeof dialog.showSaveDialog;
    dialog.showOpenDialog=(async()=>({canceled:false,filePaths:[archivePath]})) as typeof dialog.showOpenDialog;
@@ -178,6 +246,7 @@ app.whenReady().then(async()=>{
    store.save({...store.read(),games:[]},false);
    await window.webContents.executeJavaScript('window.gameAtlas.restoreBackup()');
    if(store.read().games.length!==1)throw Error('Restore failed');
+   if(store.read().games[0].lookup?.coverUrl!==selectedArt||!(await artwork(selectedArt)).ok)throw Error('Selected artwork did not survive full backup/restore');
    // Exercise import from the first-run wizard separately from the start-empty path.
    store.save({...store.read(),games:[]},false);
    writeFileSync(join(store.directory,'settings.json'),JSON.stringify({...preferences.read(),setupComplete:false}));
@@ -208,7 +277,7 @@ app.whenReady().then(async()=>{
    });
    if((await simulated.check()).state!=='installing'||!launched||!finished)throw Error('Install handoff failed');
    mkdirSync(join(app.getPath('temp'),'gameatlas-verification'),{recursive:true});
-   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,completedAt:new Date().toISOString()}));
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,artworkScan:true,localArtworkRestore:true,completedAt:new Date().toISOString()}));
    console.log('WIZARD_SETTINGS_BACKUP_OK');app.exit(0);
   }catch(e){console.error(e);app.exit(1);}
  }

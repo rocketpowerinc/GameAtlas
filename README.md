@@ -26,6 +26,11 @@ Use the cog beside Add game to reopen Settings. The footer shortcut and all prop
 - The newest 10 automatic and safety backups are kept in total across the selected folder and internal backups folder. Cleanup runs on launch and after backups; recognized backups from previous versions count toward the limit. Manual exports, unrelated files, and previously selected folders are left untouched.
 - Backup failures are reported after saving a game or in Settings; the game remains saved locally.
 
+## Missing thumbnails
+Settings > Scrape all missing thumbnails retries missing downloads and looks up games without artwork. Only a single exact title match is applied automatically. Ambiguous or unavailable results remain in Review missing thumbnails, where you can search another title or game link, preview a match, choose an image file, or leave the game missing for now.
+
+The scan shows progress and can stop after the current request. It changes only artwork, preserving all game properties and descriptions. A safety backup is created before a batch; successful artwork changes follow your backup schedule. Locally selected images are copied into the library and included in complete backups. Existing downloaded artwork is skipped.
+
 ## Complete backups and restore
 Save complete backup creates one .gameatlas file containing a consistent SQLite snapshot and cached thumbnail bytes, preserving all game metadata, descriptions, fields, choices, scores, links, and artwork references.
 

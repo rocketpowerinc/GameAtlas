@@ -1083,3 +1083,14 @@ footer {
 .settings-brand{display:flex;align-items:center;gap:10px;font-size:25px;margin-bottom:4px}
 footer .brand-mark{margin-right:7px}
 footer .brand-name{font-size:inherit}
+
+.artwork-review summary{cursor:pointer;padding:12px 0;color:var(--primary)}
+.artwork-missing-list{max-height:240px;overflow:auto;display:grid;gap:8px}
+.artwork-missing-game,.artwork-candidates button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;width:100%}
+.artwork-missing-game small,.artwork-candidates small{color:var(--muted-foreground);font-weight:400}
+.artwork-choice{border-top:1px solid var(--border);padding-top:16px;margin-top:16px}
+.artwork-choice input{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--foreground);margin:8px 0}
+.artwork-choice .backup-buttons{flex-wrap:wrap}
+.artwork-candidates{display:grid;gap:8px;max-height:230px;overflow:auto}
+.artwork-preview{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-top:16px}
+.artwork-preview img{width:120px;height:150px;object-fit:contain;background:var(--card);border-radius:8px}

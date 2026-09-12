@@ -1,5 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('gameAtlas', {
+ getArtworkStatus:()=>ipcRenderer.invoke('artwork-status'),
+ scanArtwork:()=>ipcRenderer.invoke('scan-artwork'),
+ cancelArtworkScan:()=>ipcRenderer.invoke('cancel-artwork-scan'),
+ applyArtwork:(id,url)=>ipcRenderer.invoke('apply-artwork',id,url),
+ chooseArtworkFile:id=>ipcRenderer.invoke('choose-artwork-file',id),
  getUpdateStatus: () => ipcRenderer.invoke('update-status'),
  checkUpdates: () => ipcRenderer.invoke('check-updates'),
  onUpdateStatus: (callback) => {const listener=(_event,status)=>callback(status);ipcRenderer.on('update-status',listener);return ()=>ipcRenderer.removeListener('update-status',listener);},
