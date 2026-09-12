@@ -6,8 +6,7 @@
 /coverage/
 *.tsbuildinfo
 
-# Personal backups and local settings
-/BACKUPS/
+# Local settings
 .env*
 *.pem
 *.log

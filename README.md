@@ -56,7 +56,7 @@ Use Node.js 22.13 or newer on Windows:
 Generated outputs are ignored by Git. Installers are in release. Test fixtures contain generic sample games and are not packaged.
 
 The renderer uses a sandbox, context isolation, and a limited validated preload interface. No local HTTP server is used.
-The repository contains the Windows application. React, HTML, CSS, and Vite build its embedded Electron interface; they are required desktop components. There is no hosted application, deployment configuration, or web server in this source tree. Personal exports remain in the ignored BACKUPS folder.
+The repository contains the Windows application. React, HTML, CSS, and Vite build its embedded Electron interface; they are required desktop components. There is no hosted application, deployment configuration, or web server in this source tree. Backups placed in BACKUPS can be committed to this public repository and are publicly downloadable. New or changed backups must be committed and pushed explicitly; the app does not synchronize backups with GitHub.
 
 ## Application updates
 Settings > Check for updates uses the public GitHub latest-release API. A newer stable Windows release is downloaded automatically, verified against the GitHub asset SHA-256 digest and size, and installed after a complete safety backup. GameAtlas closes and the NSIS installer upgrades and relaunches it. No GitHub account or token is needed.
