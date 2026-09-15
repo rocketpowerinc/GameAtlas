@@ -12,7 +12,8 @@ import { searchGames, gameDetails } from '../lib/game-lookup-server';
 protocol.registerSchemesAsPrivileged([{scheme:'atlas',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true}}]);
 const smoke=process.argv.includes('--smoke-test');
 if(smoke)app.setPath('userData',join(app.getPath('temp'),'gameatlas-smoke-'+process.pid));
-if(!app.requestSingleInstanceLock())app.quit();
+const primaryInstance=app.requestSingleInstanceLock();
+if(!primaryInstance)app.quit();
 let window:BrowserWindow; let store:LibraryStore;let preferences:PreferencesStore;
 let backupBusy=false;let restoring=false;
 const root=join(__dirname,'../dist');
@@ -43,6 +44,7 @@ async function artwork(raw:string):Promise<Response>{
 }
 function trusted(event:Electron.IpcMainInvokeEvent){if(event.sender!==window.webContents||event.senderFrame!==window.webContents.mainFrame||!event.senderFrame.url.startsWith('atlas://app/'))throw new Error('Untrusted window');}
 app.whenReady().then(async()=>{
+ if(!primaryInstance)return;
  app.setAppUserModelId('com.rocketpowerinc.gameatlas');
  mkdirSync(join(app.getPath('userData'),'artwork'),{recursive:true});
  const existing=existsSync(join(app.getPath('userData'),'library.sqlite'));
@@ -186,7 +188,7 @@ app.whenReady().then(async()=>{
  window.webContents.setWindowOpenHandler(({url})=>{if(/^https?:\/\//i.test(url))void shell.openExternal(url);return {action:'deny'};});
  window.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith('atlas://app/')){event.preventDefault();if(/^https?:\/\//i.test(url))void shell.openExternal(url);}});
  window.webContents.session.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
- app.on('second-instance',()=>{if(window.isMinimized())window.restore();window.focus();});
+ app.on('second-instance',()=>{if(window.isMinimized())window.restore();window.show();window.focus();});
  await window.loadURL('atlas://app/');
  preferences.run(store,'startup');
  const schedule=setInterval(()=>{if(!backupBusy)preferences.run(store,'timer');},60000);schedule.unref();
