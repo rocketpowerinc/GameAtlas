@@ -1189,3 +1189,8 @@ footer .brand-name{font-size:inherit}
 [data-theme='light'] .game-thumbnail { background: #ffffff80; box-shadow: 0 2px 7px #0002; }
 @media(max-width:1050px) { .brand span { display:none; } }
 @media(max-width:650px) { .masthead { flex-wrap:wrap; } .header-actions { flex-wrap:wrap; } }
+
+.dashboard-average-chart{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;margin:24px 0;text-align:center}
+.dashboard-score-ring{width:180px;height:180px}
+.dashboard-score-ring strong{width:142px;height:142px;display:flex;flex-direction:column;justify-content:center;gap:2px;font-size:40px;line-height:1.2}
+.dashboard-score-ring small{font-size:16px;font-weight:400;color:var(--muted-foreground)}
