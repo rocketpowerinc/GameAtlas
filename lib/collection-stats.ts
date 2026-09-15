@@ -6,7 +6,7 @@ export function collectionStats(library:Library,now=new Date()){
  const has=(g:Game,id:string,value:string)=>tags(g,id).some(t=>t.toLowerCase()===value.toLowerCase());
  const owned=library.games.filter(g=>has(g,own,'Physical')||has(g,own,'Digital'));
  const completed=owned.filter(g=>has(g,status,'Complete'));
- const backlog=owned.filter(g=>has(g,status,'Backlog')&&!has(g,status,'Complete')&&!has(g,status,'Currently Playing'));
+ const backlog=owned.filter(g=>(has(g,status,'Must Play')||has(g,status,'Backlog'))&&!has(g,status,'Complete')&&!has(g,status,'Currently Playing'));
  const playing=owned.filter(g=>has(g,status,'Currently Playing'));
  const unspecified=owned.filter(g=>!tags(g,status).length);
  const wishlist=library.games.filter(g=>has(g,own,'Wish List'));

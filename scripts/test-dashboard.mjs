@@ -24,11 +24,11 @@ assert.equal(collectionStats({fields,games:[game('bad',{Ownership:['Digital'],Sc
 console.log('PASS: dashboard counts, overlapping ownership/status, unknown status, wishlist exclusion, deduplicated platforms, custom field IDs, empty library and valid zero scores.');
 
 const insights=collectionStats({fields,revision:1,games:[
- game('a',{Title:'Alpha',Ownership:['Physical','Digital'],Status:['Backlog'],Studio:'Studio One',Score:9}),
- game('b',{Title:'Beta',Ownership:['Digital'],Status:['Complete','Backlog'],Studio:'Studio One',Score:7}),
- game('c',{Title:'Gamma',Ownership:['Physical'],Status:['Currently Playing','Backlog'],Studio:'Studio Two',Score:10}),
- game('d',{Title:'Delta',Ownership:['Digital'],Status:['Backlog'],Studio:'Studio One',Score:''}),
- game('zero',{Title:'Zero',Ownership:['Digital'],Status:['Backlog'],Studio:'Studio Two',Score:0}),
+ game('a',{Title:'Alpha',Ownership:['Physical','Digital'],Status:['Must Play'],Studio:'Studio One',Score:9}),
+ game('b',{Title:'Beta',Ownership:['Digital'],Status:['Complete','Must Play'],Studio:'Studio One',Score:7}),
+ game('c',{Title:'Gamma',Ownership:['Physical'],Status:['Currently Playing','Must Play'],Studio:'Studio Two',Score:10}),
+ game('d',{Title:'Delta',Ownership:['Digital'],Status:['Must Play'],Studio:'Studio One',Score:''}),
+ game('zero',{Title:'Zero',Ownership:['Digital'],Status:['Must Play'],Studio:'Studio Two',Score:0}),
  game('w1',{Title:'Future',Ownership:['Wish List'],'Wishlist Priority':['Must have','Someday'],'Release Date':'2026-09-13',Studio:'Studio One',Score:10}),
  game('w2',{Title:'Today',Ownership:['Wish List'],'Wishlist Priority':['Want soon'],'Release Date':'2026-09-12'}),
  game('w3',{Title:'Unknown',Ownership:['Wish List'],'Release Date':'2026-02-30'}),

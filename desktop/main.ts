@@ -214,7 +214,7 @@ app.whenReady().then(async()=>{
     const setter=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;setter.call(select,'manual');select.dispatchEvent(new Event('change',{bubbles:true}));await wait();
     [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Finish setup')).click();await wait();
     if(!(await window.gameAtlas.getSettings()).setupComplete)throw Error('Setup not saved');
-    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Backlog'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5}}]});
+    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Must Play'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5}}]});
     if(!saved.ok)throw Error('Save failed');
     const rejected=await window.gameAtlas.request('/api/library','PUT',{...saved.data,fields:[]});
     if(rejected.ok)throw Error('Property editing was accepted');
