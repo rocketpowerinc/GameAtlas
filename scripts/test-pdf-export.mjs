@@ -13,6 +13,8 @@ try{
  ]};
  const html=collectionPdfHtml(library,dir,new Date('2026-09-15T12:00:00Z'));
  assert(html.includes('Complete Collection Catalog'));
+ assert(html.includes('alt="GameAtlas icon"'));
+ assert(html.includes('data:image/png;base64,'));
  assert(html.includes('<b>2</b><span>Total games</span>'));
  assert(html.indexOf('<h2>Alpha</h2>')<html.indexOf('<h2>Zelda &amp; Friends</h2>'));
  assert(html.includes('Keep &lt;safe&gt;')&&!html.includes('Keep <safe>'));
