@@ -65,8 +65,8 @@ export function DesktopSettings({open,onOpenChange,onReload,onArtwork}:{onArtwor
      <button className="quiet" disabled={busy||updating} onClick={()=>void importLibrary()}><Upload size={18}/> Restore backup</button>
      <button className="quiet" disabled={busy||updating} onClick={()=>{void window.gameAtlas.openBackups().then(e=>{if(e)setError(e);}).catch(e=>setError(String(e)));}}>Open backup folder</button>
     </div>}
+    {!wizard&&<div className="settings-section"><h2>Create Collection PDF</h2><p className="muted">Create a polished, printable PDF of every game with cover art and the details that matter most.</p><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf()}><FileDown size={18}/> Export Collection PDF</button></div>}
     {!wizard&&<div className="settings-section"><h2>Game artwork</h2><p className="muted">Find missing thumbnails and choose images in a dedicated window.</p><button className="quiet" disabled={busy||updating} onClick={onArtwork}>Check for missing artwork</button></div>}
-    {!wizard&&<div className="settings-section"><h2>Collection catalog</h2><p className="muted">Create a polished, printable PDF of every game with cover art and the details that matter most.</p><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf()}><FileDown size={18}/> Export Collection PDF</button></div>}
     {!wizard&&<div className="settings-section">
      <h2>Application updates</h2>
      <p className="muted">Check for a newer version and review what’s changed. You choose when to install.</p>
