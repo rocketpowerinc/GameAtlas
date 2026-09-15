@@ -78,3 +78,5 @@ Install version 1.4.2 or newer to review release notes and confirm before updati
 Use the sun/moon button beside Settings to switch between light and dark themes. Your choice is remembered on this computer between launches.
 
 ESRB ratings appear on game cards and in list view. Use the ESRB filter or sort from Everyone first / Mature first. Unknown, pending, and unrated entries remain at the end. Ratings can be edited in game details; verified imported ratings link to the ESRB listing and its platforms. Some original releases predate ESRB. A rating for one edition should not be assumed to cover every port.
+
+Use **Settings > Export Collection PDF** to create a printable catalog of the entire library. It includes a cover page, collection totals, cached cover art, pertinent game details, notes, clickable website links, and page numbers.

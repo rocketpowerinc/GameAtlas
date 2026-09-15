@@ -1,6 +1,6 @@
 {
   "name": "gameatlas",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -10,7 +10,7 @@
     "build": "vite build && node scripts/build-desktop.mjs",
     "start": "electron .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test-game-lookup.mjs && node scripts/test-store.mjs && node scripts/test-backup.mjs && node scripts/test-preferences.mjs && node scripts/test-updates.mjs && node scripts/test-artwork-scan.mjs && node scripts/test-dashboard.mjs && node scripts/test-esrb.mjs",
+    "test": "node scripts/test-game-lookup.mjs && node scripts/test-store.mjs && node scripts/test-backup.mjs && node scripts/test-preferences.mjs && node scripts/test-updates.mjs && node scripts/test-artwork-scan.mjs && node scripts/test-dashboard.mjs && node scripts/test-esrb.mjs && node scripts/test-pdf-export.mjs",
     "test:desktop": "electron . --smoke-test",
     "dist": "npm run build && electron-builder --win nsis --x64",
     "build:branding": "electron scripts/build-branding.cjs"

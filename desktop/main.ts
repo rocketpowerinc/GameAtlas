@@ -10,6 +10,7 @@ import { PreferencesStore } from './preferences';
 import { DesktopUpdater } from './updater';
 import { writeBackup, readBackup, missingArtwork } from './backup';
 import { searchGames, gameDetails } from '../lib/game-lookup-server';
+import {exportCollectionPdf} from './pdf-export';
 protocol.registerSchemesAsPrivileged([{scheme:'atlas',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true}}]);
 const smoke=process.argv.includes('--smoke-test');
 if(smoke)app.setPath('userData',join(app.getPath('temp'),'gameatlas-smoke-'+process.pid));
@@ -142,6 +143,15 @@ app.whenReady().then(async()=>{
    const result=writeBackup(store.db,store.directory,filePath);
    return 'Backup saved: '+result.games+' games and '+result.images+' image files.'+(result.missing.length?' '+result.missing.length+' thumbnails are missing.':' All linked thumbnails are included.');
   }finally{backupBusy=false;}
+ });
+ ipcMain.handle('export-collection-pdf',async event=>{
+  trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
+  const {filePath}=await dialog.showSaveDialog(window,{title:'Export collection PDF',defaultPath:join(app.getPath('documents'),'GameAtlas Collection '+new Date().toISOString().slice(0,10)+'.pdf'),filters:[{name:'PDF document',extensions:['pdf']}]});
+  if(!filePath)return '';
+  const destination=filePath.toLowerCase().endsWith('.pdf')?filePath:filePath+'.pdf';
+  backupBusy=true;
+  try{const result=await exportCollectionPdf(store.read(),store.directory,destination);return `PDF saved with ${result.games} games.`;}
+  finally{backupBusy=false;}
  });
  ipcMain.handle('restore-backup',async event=>{
   trusted(event);if(backupBusy)throw Error('A backup or restore is already running.');backupBusy=true;
@@ -277,7 +287,8 @@ app.whenReady().then(async()=>{
    if(!selectedArt?.startsWith('https://local-art.gameatlas.invalid/'))throw Error('Local artwork was not saved');
    if(!(await artwork(selectedArt)).ok)throw Error('Local artwork does not render');
    const archivePath=join(app.getPath('temp'),'gameatlas-wizard-'+process.pid+'.gameatlas');
-   dialog.showSaveDialog=(async()=>({canceled:false,filePath:archivePath})) as typeof dialog.showSaveDialog;
+   const pdfPath=join(app.getPath('temp'),'gameatlas-catalog-'+process.pid+'.pdf');
+   dialog.showSaveDialog=(async(_window,options)=>({canceled:false,filePath:options?.filters?.some(filter=>filter.extensions.includes('pdf'))?pdfPath:archivePath})) as typeof dialog.showSaveDialog;
    dialog.showOpenDialog=(async()=>({canceled:false,filePaths:[archivePath]})) as typeof dialog.showOpenDialog;
    dialog.showMessageBox=(async()=>({response:1,checkboxChecked:false})) as typeof dialog.showMessageBox;
    await window.webContents.executeJavaScript('window.gameAtlas.exportBackup()');
@@ -285,6 +296,8 @@ app.whenReady().then(async()=>{
    await window.webContents.executeJavaScript('window.gameAtlas.restoreBackup()');
    if(store.read().games.length!==1)throw Error('Restore failed');
    if(store.read().games[0].lookup?.coverUrl!==selectedArt||!(await artwork(selectedArt)).ok)throw Error('Selected artwork did not survive full backup/restore');
+   const pdfMessage=await window.webContents.executeJavaScript('window.gameAtlas.exportCollectionPdf()');
+   if(!pdfMessage.includes('1 games')||!existsSync(pdfPath)||readFileSync(pdfPath).subarray(0,5).toString()!=='%PDF-'||statSync(pdfPath).size<10000)throw Error('Collection PDF export failed');
    // Exercise import from the first-run wizard separately from the start-empty path.
    store.save({...store.read(),games:[]},false);
    writeFileSync(join(store.directory,'settings.json'),JSON.stringify({...preferences.read(),setupComplete:false}));
@@ -327,6 +340,7 @@ app.whenReady().then(async()=>{
      const pause=()=>new Promise(r=>setTimeout(r,100));
      document.querySelector('[aria-label="Settings"]').click();
      await pause();
+     if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Export Collection PDF')))throw Error('PDF export button missing');
      const result=await window.gameAtlas.checkUpdates();
      if(result.state!=='available')throw Error('Release review not returned');
      for(let n=0;n<30&&!document.querySelector('.update-review');n++)await pause();
@@ -346,7 +360,7 @@ app.whenReady().then(async()=>{
     if(networkCalls!==1)throw Error('Postponing triggered a download');
    }finally{globalThis.fetch=realFetch;}
    mkdirSync(join(app.getPath('temp'),'gameatlas-verification'),{recursive:true});
-   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,artworkScan:true,artworkWindow:true,previewFallback:true,updateConsent:true,releaseNotes:true,dashboard:true,localArtworkRestore:true,completedAt:new Date().toISOString()}));
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','result.json'),JSON.stringify({ok:true,packaged:app.isPackaged,blankInstall:true,wizard:true,settings:true,backupRestore:true,pdfExport:true,artworkScan:true,artworkWindow:true,previewFallback:true,updateConsent:true,releaseNotes:true,dashboard:true,localArtworkRestore:true,completedAt:new Date().toISOString()}));
    await window.webContents.executeJavaScript(`(async()=>{
     document.querySelector('[data-slot="dialog-close"]')?.click();
     await new Promise(r=>setTimeout(r,200));

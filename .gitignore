@@ -4,6 +4,8 @@
 /desktop-dist/
 /release/
 /coverage/
+/output/pdf/
+/tmp/pdfs/
 *.tsbuildinfo
 
 # Local settings
