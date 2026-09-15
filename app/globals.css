@@ -1194,3 +1194,7 @@ footer .brand-name{font-size:inherit}
 .dashboard-score-ring{width:180px;height:180px}
 .dashboard-score-ring strong{width:142px;height:142px;display:flex;flex-direction:column;justify-content:center;gap:2px;font-size:40px;line-height:1.2}
 .dashboard-score-ring small{font-size:16px;font-weight:400;color:var(--muted-foreground)}
+
+.esrb-badge{display:block;font-size:11px;color:var(--muted-foreground);margin-top:5px}
+.field select{min-height:44px;border:1px solid var(--input);border-radius:7px;background:var(--background);color:var(--foreground);padding:10px}
+.view-controls{flex-wrap:wrap}

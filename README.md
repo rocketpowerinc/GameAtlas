@@ -76,3 +76,5 @@ Settings > Check for updates uses the public GitHub latest-release API. A newer 
 Install version 1.4.2 or newer to review release notes and confirm before updating. Versions 1.3 through 1.4.1 still install immediately when their old Check for updates button is pressed. Older versions do not have the button. The update preserves the library and settings. No background update checks run without pressing the button. Release installers must have a matching GameAtlas.Setup.VERSION.exe name and GitHub asset digest. Missing assets, rate limits, offline access, failed verification, and installer launch errors are shown in Settings.
 
 Use the sun/moon button beside Settings to switch between light and dark themes. Your choice is remembered on this computer between launches.
+
+ESRB ratings appear on game cards and in list view. Use the ESRB filter or sort from Everyone first / Mature first. Unknown, pending, and unrated entries remain at the end. Ratings can be edited in game details; verified imported ratings link to the ESRB listing and its platforms. Some original releases predate ESRB. A rating for one edition should not be assumed to cover every port.

@@ -113,6 +113,24 @@
       "options": []
     },
     {
+      "id": "ESRB",
+      "name": "ESRB rating",
+      "type": "text",
+      "options": [
+        "EC — Early Childhood",
+        "E — Everyone",
+        "E10+ — Everyone 10+",
+        "T — Teen",
+        "M — Mature 17+",
+        "AO — Adults Only 18+",
+        "K-A — Kids to Adults (legacy)",
+        "RP — Rating Pending",
+        "Not rated",
+        "Pre-ESRB release",
+        "Unknown"
+      ]
+    },
+    {
       "id": "Status",
       "name": "Status",
       "type": "multi_select",

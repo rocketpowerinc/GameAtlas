@@ -1,5 +1,5 @@
 export type Field = {id:string;name:string;type:'text'|'multi_select'|'number'|'date'|'url'|'checkbox';options:string[]};
-export type Game = {id:string;values:Record<string,string|number|boolean|string[]>;sourceUrl?:string;dateEnd?:string;dateIsTime?:number;lookup?:{sources:{name:string;url:string}[];scoreSource?:string;releaseNote?:string;coverUrl?:string;description?:string}};
+export type Game = {id:string;values:Record<string,string|number|boolean|string[]>;esrb?:{url:string;title:string;platforms:string[];checkedAt:string};sourceUrl?:string;dateEnd?:string;dateIsTime?:number;lookup?:{sources:{name:string;url:string}[];scoreSource?:string;releaseNote?:string;coverUrl?:string;description?:string}};
 export type Library = {fields:Field[];games:Game[];revision:number};
 export const display = (v:unknown):string => Array.isArray(v)?v.join(', '):v===undefined||v===null?'':String(v);
 export function validate(data:unknown): asserts data is Library {

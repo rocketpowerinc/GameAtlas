@@ -1,3 +1,4 @@
+import {esrbOptions,compareEsrb} from '@/lib/esrb';
 import {saveTheme, type Theme} from '@/lib/theme';
 import {CollectionDashboard} from '@/components/collection-dashboard';
 import {ArtworkSettings} from '@/components/artwork-settings';
@@ -147,6 +148,7 @@ export default function Home() {
     [platform, setPlatform] = useState('All platforms'),
     [genre, setGenre] = useState('All genres'),
     [status, setStatus] = useState('All statuses'),
+    [esrb, setEsrb] = useState('All ESRB ratings'),
     [sort, setSort] = useState('Title A–Z'),
     [layout, setLayout] = useState('grid'),
     [limit, setLimit] = useState(48),
@@ -257,6 +259,7 @@ export default function Home() {
           const existing = values[id];
           if (
             existing === '' ||
+            (id === 'ESRB' && existing === 'Unknown') ||
             existing === undefined ||
             (Array.isArray(existing) && !existing.length) ||
             (id === 'Title' &&
@@ -385,7 +388,7 @@ export default function Home() {
   }, []);
   useEffect(() => {
     setLimit(48);
-  }, [query, platform, genre, status, view, sort]);
+  }, [query, platform, genre, status, esrb, view, sort]);
   useEffect(() => {
     if (!notice) return;
     const id = setTimeout(() => setNotice(''), 4500);
@@ -464,7 +467,7 @@ export default function Home() {
               setView('All games');
               setPlatform('All platforms');
               setGenre('All genres');
-              setStatus('All statuses');
+              setStatus('All statuses');setEsrb('All ESRB ratings');
               return { query: q };
             },
           },
@@ -501,12 +504,13 @@ export default function Home() {
               contains(g, 'Platform', platform)) &&
             (genre === 'All genres' || contains(g, 'Genre', genre)) &&
             (status === 'All statuses' || contains(g, 'Status', status)) &&
+            (esrb === 'All ESRB ratings' || (g.values.ESRB || 'Unknown') === esrb) &&
             Object.values(g.values).some((v) =>
               display(v).toLowerCase().includes(query.toLowerCase()),
             ),
         )
         .sort((a, b) =>
-          sort === 'Highest score'
+          sort.startsWith('ESRB:') ? compareEsrb(a.values.ESRB,b.values.ESRB,sort==='ESRB: Mature first') || title(a,fields).localeCompare(title(b,fields)) : sort === 'Highest score'
             ? Number(b.values.Score || 0) - Number(a.values.Score || 0)
             : sort === 'Newest release'
               ? display(b.values['Release Date']).localeCompare(
@@ -515,7 +519,7 @@ export default function Home() {
               : title(a, fields).localeCompare(title(b, fields)) *
                 (sort === 'Title Z–A' ? -1 : 1),
         ),
-    [data, view, query, platform, genre, status, sort,dashboardFilter],
+    [data, view, query, platform, genre, status, esrb, sort,dashboardFilter],
   );
   return (
     <main className="atlas">
@@ -542,7 +546,7 @@ export default function Home() {
           </button>
         </div>
       </header>
-      {dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={g=>setDraft(structuredClone(g))} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setLimit(48);}}/>:<section className="collection">
+      {dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={g=>setDraft(structuredClone(g))} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
         <div className="collection-heading">
           <div>
             <p className="eyebrow">YOUR COLLECTION, ALL TOGETHER</p>
@@ -648,14 +652,14 @@ export default function Home() {
             {(query ||
               platform !== 'All platforms' ||
               genre !== 'All genres' ||
-              status !== 'All statuses') && (
+              status !== 'All statuses' || esrb !== 'All ESRB ratings') && (
               <button
                 className="text-button"
                 onClick={() => {
                   setQuery('');
                   setPlatform('All platforms');
                   setGenre('All genres');
-                  setStatus('All statuses');
+                  setStatus('All statuses');setEsrb('All ESRB ratings');
                 }}
               >
                 Clear filters
@@ -663,6 +667,7 @@ export default function Home() {
             )}
           </p>
           <div className="view-controls">
+            <Pick value={esrb} onChange={setEsrb} options={['All ESRB ratings',...esrbOptions]} label="Filter by ESRB rating"/>
             <Pick
               value={sort}
               onChange={setSort}
@@ -670,6 +675,8 @@ export default function Home() {
                 'Title A–Z',
                 'Title Z–A',
                 'Highest score',
+                'ESRB: Everyone first',
+                'ESRB: Mature first',
                 'Newest release',
               ]}
               label="Sort games"
@@ -752,7 +759,7 @@ export default function Home() {
                   </div>
                 </button>
                 <div className="card-bottom">
-                  <span>{display(g.values.Ownership) || 'Uncategorized'}</span>
+                  <span>{display(g.values.Ownership) || 'Uncategorized'}<small className="esrb-badge">ESRB: {display(g.values.ESRB)||'Unknown'}</small></span>
                   {safeLink(g.values.Link) ? (
                     <a
                       className="game-link"
@@ -995,7 +1002,7 @@ export default function Home() {
                     key={f.id}
                   >
                     <label htmlFor={`edit-${f.id}`}>{f.name}</label>
-                    {f.type === 'multi_select' ? (
+                    {f.id === 'ESRB' ? (<><select id="edit-ESRB" value={display(draft.values.ESRB)||'Unknown'} onChange={e=>setDraft({...draft,esrb:undefined,values:{...draft.values,ESRB:e.target.value}})}>{esrbOptions.map(r=><option key={r}>{r}</option>)}</select><small className="muted">Unknown means not verified. Pre-ESRB release predates the rating system; later editions may be rated.</small>{draft.esrb&&<a className="table-link" href={safeLink(draft.esrb.url)} target="_blank" rel="noreferrer">ESRB listing · {draft.esrb.platforms.join(', ')}</a>}</>) : f.type === 'multi_select' ? (
                       <div className="choices" role="group" aria-label={f.name}>
                         {Array.from(
                           new Set([

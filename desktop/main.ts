@@ -1,3 +1,4 @@
+import {withEsrb,searchEsrb,chooseEsrb} from '../lib/esrb';
 import { app, BrowserWindow, ipcMain, protocol, net, shell, dialog, Menu, nativeImage } from 'electron';
 import { join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -16,6 +17,7 @@ const primaryInstance=app.requestSingleInstanceLock();
 if(!primaryInstance)app.quit();
 let window:BrowserWindow; let store:LibraryStore;let preferences:PreferencesStore;
 let backupBusy=false;let restoring=false;
+function upgradeEsrb(){const original=store.read();const updated=withEsrb(original);if(JSON.stringify(updated)!==JSON.stringify(original)){store.snapshot();store.save(updated,false);}}
 const root=join(__dirname,'../dist');
 const artHosts=['ignimgs.com','ign.com','wikimedia.org','steamstatic.com','steamcdn-a.akamaihd.net'];
 const safeArt=(raw:string)=>{try{const u=new URL(raw);return u.protocol==='https:'&&!u.username&&!u.password&&artHosts.some(h=>u.hostname===h||u.hostname.endsWith('.'+h));}catch{return false;}};
@@ -49,6 +51,7 @@ app.whenReady().then(async()=>{
  mkdirSync(join(app.getPath('userData'),'artwork'),{recursive:true});
  const existing=existsSync(join(app.getPath('userData'),'library.sqlite'));
  store=new LibraryStore(app.getPath('userData'),join(__dirname,'../data/library.json'));
+ upgradeEsrb();
  preferences=new PreferencesStore(app.getPath('userData'),existing);
  const scan=new ArtworkScan(store,{
   cached:url=>{const path=join(store.directory,'artwork',createHash('sha256').update(url).digest('hex'));return existsSync(path)&&existsSync(path+'.type')&&statSync(path).size>0;},
@@ -98,7 +101,7 @@ app.whenReady().then(async()=>{
  ipcMain.handle('request',async(event,path,method,body)=>{
   trusted(event);
   try{
-   if(path==='/api/library'&&method==='GET')return {ok:true,data:store.read()};
+   if(path==='/api/library'&&method==='GET'){upgradeEsrb();return {ok:true,data:store.read()};}
    if(path==='/api/library'&&method==='PUT'){
     if(backupBusy)throw Error('Wait for the backup or restore to finish.');
     if(!preferences.read().setupComplete)throw Error('Finish setup before editing your library.');
@@ -111,7 +114,7 @@ app.whenReady().then(async()=>{
     if(body.action==='search'&&typeof body.query==='string'&&body.query.trim().length>=2&&body.query.length<=500)return {ok:true,data:await searchGames(body.query.trim())};
     const c=body.candidate;
     if(['details','artwork'].includes(body.action)&&c&&typeof c.name==='string'&&c.name.length<=300&&(c.wikiId||c.steamId)&&[c.wikiId,c.steamId].every(id=>id===undefined||Number.isSafeInteger(id)&&id>0)){
-     const details=await gameDetails(c);if(body.action==='details')return {ok:true,data:details};
+     const details=await gameDetails(c);if(body.action==='details'){if(!smoke)try{const match=chooseEsrb(await searchEsrb(String(details.values.Title||c.name)),[String(details.values.Title||c.name)],Array.isArray(details.values.Platform)?details.values.Platform:[]);if(match){details.values.ESRB=match.rating;details.sources.push({name:'ESRB',url:match.url});}}catch{}return {ok:true,data:details};}
      const previews=[];let failure='No downloadable artwork was found for this match.';
      for(const url of [...new Set([details.coverUrl,...(details.coverUrls||[])].filter((u):u is string=>!!u))]){try{const r=await artwork(url);if(!r.ok)throw Error('This image source is not supported.');const bytes=Buffer.from(await r.arrayBuffer());previews.push({url,dataUrl:'data:'+r.headers.get('content-type')+';base64,'+bytes.toString('base64')});}catch(e){failure=e instanceof Error?e.message:String(e);}}
      if(!previews.length)throw Error(failure);return {ok:true,data:{previews}};
@@ -377,6 +380,20 @@ app.whenReady().then(async()=>{
     await new Promise(r=>setTimeout(r,150));
     if(document.documentElement.dataset.theme!=='dark'||!document.documentElement.classList.contains('dark')||getComputedStyle(document.body).backgroundColor!=='rgb(13, 17, 23)')throw Error('Dark theme failed');
    })()`);
+   await window.webContents.executeJavaScript(`(async()=>{
+    if(!document.querySelector('[aria-label="Filter by ESRB rating"]'))throw Error('ESRB filter missing');
+    document.querySelector('.game-card-main').click();await new Promise(r=>setTimeout(r,150));
+    const rating=document.querySelector('#edit-ESRB');if(!rating||rating.value!=='Unknown')throw Error('ESRB migration/editor failed');
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(rating,'T — Teen');rating.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,100));
+    [...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Save game').click();await new Promise(r=>setTimeout(r,300));
+    if(!document.querySelector('.esrb-badge')?.textContent.includes('T — Teen'))throw Error('ESRB save failed');
+    document.querySelector('[aria-label="Filter by ESRB rating"]').click();await new Promise(r=>setTimeout(r,150));
+    [...document.querySelectorAll('[role="option"]')].find(o=>o.textContent==='E — Everyone').click();await new Promise(r=>setTimeout(r,150));
+    if(document.querySelector('.game-card'))throw Error('ESRB filter did not hide nonmatching game');
+    [...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Clear filters').click();await new Promise(r=>setTimeout(r,150));
+    if(!document.querySelector('.game-card'))throw Error('ESRB clear filter failed');
+   })()`);
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','esrb-library.png'),(await window.webContents.capturePage()).toPNG());
    console.log('THEME_SWITCH_AND_PERSISTENCE_OK');
    console.log('WIZARD_SETTINGS_BACKUP_OK');app.exit(0);
   }catch(e){console.error(e);app.exit(1);}
