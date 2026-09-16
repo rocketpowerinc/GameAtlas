@@ -33,6 +33,7 @@ import {
   Pencil,
   ArrowLeft,
   Library as LibraryIcon,
+  Video,
 } from 'lucide-react';
 import {
   Dialog,
@@ -84,6 +85,18 @@ const safeLink = (value: unknown) => {
   } catch {
     return '';
   }
+};
+const youtubeSearch = (
+  gameTitle: string,
+  kind: 'trailer' | 'ign' | 'gameranx',
+) => {
+  const suffix =
+    kind === 'trailer'
+      ? 'official trailer'
+      : kind === 'ign'
+        ? 'IGN review'
+        : 'Before You Buy GameRanx';
+  return `https://www.youtube.com/results?${new URLSearchParams({ search_query: `"${gameTitle}" ${suffix}` })}`;
 };
 function GameThumbnail({ url, variant }: { url?: string; variant: 'card' | 'list' }) {
   const [failed, setFailed] = useState(false);
@@ -814,7 +827,7 @@ export default function Home() {
                   {draft.values.Score!==''&&draft.values.Score!==undefined&&<span>Score {display(draft.values.Score)} / 10</span>}
                   <span>ESRB {display(draft.values.ESRB)||'Unknown'}</span>
                 </div>
-                {gamePageSources.length>1&&<div className="game-page-source-links"><small>Sources</small>{gamePageSources.map(source=><a key={source.url} href={safeLink(source.url)} target="_blank" rel="noopener noreferrer">{source.name} <ArrowUpRight size={13}/></a>)}</div>}
+                {(gamePageSources.length>1||gamePageSources.some(source=>source.name.toLowerCase()==='youtube'))&&<div className="game-page-source-links"><small>Sources</small>{gamePageSources.map(source=><a key={source.url} href={safeLink(source.url)} target="_blank" rel="noopener noreferrer">{source.name} <ArrowUpRight size={13}/></a>)}</div>}
               </div>
             </div>
             {!!gamePageDetailFields.length&&<section className="game-page-properties" aria-label="Additional game properties">
@@ -962,13 +975,14 @@ export default function Home() {
                 <h3 id="source-editor-heading">Sources</h3>
                 <p className="muted">Add the pages you want shown on the game page. Leave a field blank to hide that source.</p>
                 <div className="source-editor-grid">
-                  {['IGN','Steam','Wikipedia','HowLongToBeat'].map(name=>{
+                  {['IGN','Steam','Wikipedia','HowLongToBeat','YouTube'].map(name=>{
                     const source=draft.lookup?.sources.find(item=>item.name.toLowerCase()===name.toLowerCase());
-                    return <div className="field" key={name}><label htmlFor={`edit-source-${name.toLowerCase()}`}>{name} URL</label><input id={`edit-source-${name.toLowerCase()}`} type="url" placeholder={`https://${name==='IGN'?'www.ign.com':name==='Steam'?'store.steampowered.com':name==='Wikipedia'?'en.wikipedia.org':'howlongtobeat.com/game'}/…`} value={source?.url??''} onChange={event=>{
+                    const placeholder=name==='IGN'?'www.ign.com':name==='Steam'?'store.steampowered.com':name==='Wikipedia'?'en.wikipedia.org':name==='HowLongToBeat'?'howlongtobeat.com/game':'www.youtube.com/watch?v=';
+                    return <div className={`field ${name==='YouTube'?'source-youtube':''}`} key={name}><label htmlFor={`edit-source-${name.toLowerCase()}`}>{name} URL</label><input id={`edit-source-${name.toLowerCase()}`} type="url" placeholder={`https://${placeholder}…`} value={source?.url??''} onChange={event=>{
                       const sources=(draft.lookup?.sources??[]).filter(item=>item.name.toLowerCase()!==name.toLowerCase());
                       if(event.target.value)sources.push({name,url:event.target.value});
                       setDraft({...draft,lookup:{...draft.lookup,sources}});
-                    }}/></div>;
+                    }}/>{name==='YouTube'&&<><div className="youtube-searches" aria-label="Find a YouTube video"><span><Video size={16}/> Find the best video</span><a href={youtubeSearch(title(draft,fields),'trailer')} target="_blank" rel="noopener noreferrer">1. Official trailer <ArrowUpRight size={13}/></a><a href={youtubeSearch(title(draft,fields),'ign')} target="_blank" rel="noopener noreferrer">2. IGN review <ArrowUpRight size={13}/></a><a href={youtubeSearch(title(draft,fields),'gameranx')} target="_blank" rel="noopener noreferrer">3. GameRanx Before You Buy <ArrowUpRight size={13}/></a></div><small className="muted">Open the searches in order, choose the correct video, then paste its URL above.</small></>}</div>;
                   })}
                 </div>
               </section>
