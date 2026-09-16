@@ -12,9 +12,13 @@ const transpile = async (path) =>
 const uri = (code) =>
   'data:text/javascript;base64,' + Buffer.from(code).toString('base64');
 const sharedUri = uri(await transpile('../lib/game-lookup.ts'));
-const { normalizeTitle, exactDate, parseWikipedia, mapOptions } = await import(
-  sharedUri
-);
+const {
+  normalizeTitle,
+  exactDate,
+  parseWikipedia,
+  mapOptions,
+  completeDescription,
+} = await import(sharedUri);
 const serverUri = uri(
   (await transpile('../lib/game-lookup-server.ts')).replace(
     "'./game-lookup'",
@@ -47,6 +51,18 @@ assert.throws(
 assert.equal(
   inputQuery('https://store.steampowered.com/app/1145360/Hades/').steamId,
   1145360,
+);
+assert.equal(
+  completeDescription(
+    'The first sentence is complete. The second sentence is also complete. This trailing sentence is cut',
+    82,
+  ),
+  'The first sentence is complete. The second sentence is also complete.',
+);
+assert.equal(completeDescription('Only an unfinished fragment'), '');
+assert.equal(
+  completeDescription('A cited sentence.[1][2] A trailing fragment'),
+  'A cited sentence.[1][2]',
 );
 
 const fixture = (score = '9/10') =>
@@ -107,7 +123,7 @@ try {
   globalThis.fetch = originalFetch;
 }
 console.log(
-  'PASS: title disambiguation, partial release dates, IGN citation/score pairing, Steam fallback, score scale protection, and URL restrictions.',
+  'PASS: title disambiguation, complete description boundaries, partial release dates, IGN citation/score pairing, Steam fallback, score scale protection, and URL restrictions.',
 );
 
 if (process.argv.includes('--live')) {

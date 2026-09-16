@@ -1,6 +1,7 @@
 import {
   normalizeTitle,
   plain,
+  completeDescription,
   exactDate,
   parseWikipedia,
   type LookupCandidate,
@@ -196,7 +197,8 @@ async function steamDetails(id: number): Promise<LookupDetails> {
       (d.release_date?.coming_soon ? 'Upcoming · ' : 'Steam release · ') +
       (d.release_date?.date || 'Date to be announced'),
     coverUrl: d.header_image,
-    description: plain(d.short_description ?? '').slice(0, 500) || undefined,
+    description:
+      completeDescription(plain(d.short_description ?? '')) || undefined,
   };
 }
 

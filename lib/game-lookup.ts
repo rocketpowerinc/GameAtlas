@@ -60,6 +60,23 @@ export const plain = (s: string) =>
     .replace(/;\s*$/, '')
     .trim();
 
+/**
+ * Keep only complete sentences within the requested description length.
+ * Scraped prose must never be saved with a character-limit fragment on the end.
+ */
+export function completeDescription(s: string, maxLength = 500): string {
+  const text = s.trim();
+  if (!text) return '';
+  const clipped = text.slice(0, maxLength);
+  const endings = Array.from(
+    clipped.matchAll(
+      /[.!?](?:["\u201d\u2019')\]]|\[\d+(?:,\s*\d+)*\])*(?=\s|$)/g,
+    ),
+  );
+  const last = endings.at(-1);
+  return last ? clipped.slice(0, last.index + last[0].length).trim() : '';
+}
+
 export function exactDate(s: string): string | undefined {
   // Never turn a year, quarter, or TBA into an invented calendar date.
   const match = s.match(
@@ -156,14 +173,15 @@ export function parseWikipedia(
       ...(ignUrl ? [{ name: 'IGN', url: ignUrl }] : []),
     ],
     scoreSource,
-    description: Array.from(
-      html
-        .slice(html.indexOf(info) + info.length)
-        .matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/g),
-    )
-      .map((m) => plain(m[1]))
-      .find((s) => s.length > 50)
-      ?.slice(0, 500),
+    description: completeDescription(
+      Array.from(
+        html
+          .slice(html.indexOf(info) + info.length)
+          .matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/g),
+      )
+        .map((m) => plain(m[1]))
+        .find((s) => s.length > 50) ?? '',
+    ) || undefined,
     releaseNote: releaseNote || undefined,
     coverUrl: cover
       ? decodeHtml(cover).replace(/^\/\//, 'https://')
