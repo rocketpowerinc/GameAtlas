@@ -842,7 +842,7 @@ footer {
 .source-editor{margin:20px 0}
 .source-editor h3{margin:0 0 5px;font-size:16px}
 .source-editor > p{margin:0 0 13px}
-.source-editor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.source-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media(max-width:760px){.source-editor-grid{grid-template-columns:1fr}}
 .game-lookup {
   padding: 16px;

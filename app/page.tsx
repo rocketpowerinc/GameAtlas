@@ -962,9 +962,9 @@ export default function Home() {
                 <h3 id="source-editor-heading">Sources</h3>
                 <p className="muted">Add the pages you want shown on the game page. Leave a field blank to hide that source.</p>
                 <div className="source-editor-grid">
-                  {['IGN','Steam','Wikipedia'].map(name=>{
+                  {['IGN','Steam','Wikipedia','HowLongToBeat'].map(name=>{
                     const source=draft.lookup?.sources.find(item=>item.name.toLowerCase()===name.toLowerCase());
-                    return <div className="field" key={name}><label htmlFor={`edit-source-${name.toLowerCase()}`}>{name} URL</label><input id={`edit-source-${name.toLowerCase()}`} type="url" placeholder={`https://${name==='IGN'?'www.ign.com':name==='Steam'?'store.steampowered.com':'en.wikipedia.org'}/…`} value={source?.url??''} onChange={event=>{
+                    return <div className="field" key={name}><label htmlFor={`edit-source-${name.toLowerCase()}`}>{name} URL</label><input id={`edit-source-${name.toLowerCase()}`} type="url" placeholder={`https://${name==='IGN'?'www.ign.com':name==='Steam'?'store.steampowered.com':name==='Wikipedia'?'en.wikipedia.org':'howlongtobeat.com/game'}/…`} value={source?.url??''} onChange={event=>{
                       const sources=(draft.lookup?.sources??[]).filter(item=>item.name.toLowerCase()!==name.toLowerCase());
                       if(event.target.value)sources.push({name,url:event.target.value});
                       setDraft({...draft,lookup:{...draft.lookup,sources}});
