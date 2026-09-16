@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld('gameAtlas', {
  request: (path,method,body) => ipcRenderer.invoke('request',path,method,body),
  restoreBackup: () => ipcRenderer.invoke('restore-backup'),
  exportBackup: () => ipcRenderer.invoke('export-backup'),
- exportCollectionPdf: () => ipcRenderer.invoke('export-collection-pdf'),
+ exportCollectionPdf: scope => ipcRenderer.invoke('export-collection-pdf',scope),
  chooseBackupFolder: () => ipcRenderer.invoke('backup-folder'),
  openBackups: () => ipcRenderer.invoke('open-backups')
 });

@@ -31,9 +31,9 @@ export function DesktopSettings({open,onOpenChange,onReload,onArtwork}:{onArtwor
   setBusy(true);setError('');setMessage('Preparing the complete backup…');
   try{setMessage(await window.gameAtlas.exportBackup());}catch(e){setError(String(e));}finally{setBusy(false);}
  }
- async function exportPdf(){
-  setBusy(true);setError('');setMessage('Building your collection PDF…');
-  try{const result=await window.gameAtlas.exportCollectionPdf();setMessage(result||'PDF export canceled.');}catch(e){setError(String(e));setMessage('');}finally{setBusy(false);}
+ async function exportPdf(scope:'all'|'physical'){
+  setBusy(true);setError('');setMessage(scope==='physical'?'Building your physical collection PDF…':'Building your entire library PDF…');
+  try{const result=await window.gameAtlas.exportCollectionPdf(scope);setMessage(result||'PDF export canceled.');}catch(e){setError(String(e));setMessage('');}finally{setBusy(false);}
  }
  return <Dialog open={open||wizard||(!preferences&&!!error)} onOpenChange={v=>{if(!wizard&&!busy&&!updating)onOpenChange(v);}}>
   <DialogContent showCloseButton={!wizard} className={wizard?'editor settings-editor setup-wizard':'editor settings-editor'}>
@@ -65,7 +65,7 @@ export function DesktopSettings({open,onOpenChange,onReload,onArtwork}:{onArtwor
      <button className="quiet" disabled={busy||updating} onClick={()=>void importLibrary()}><Upload size={18}/> Restore backup</button>
      <button className="quiet" disabled={busy||updating} onClick={()=>{void window.gameAtlas.openBackups().then(e=>{if(e)setError(e);}).catch(e=>setError(String(e)));}}>Open backup folder</button>
     </div>}
-    {!wizard&&<div className="settings-section"><h2>Create Collection PDF</h2><p className="muted">Create a polished, printable PDF of every game with cover art and the details that matter most.</p><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf()}><FileDown size={18}/> Export Collection PDF</button></div>}
+    {!wizard&&<div className="settings-section"><h2>Create Collection PDF</h2><p className="muted">Create a polished, printable catalog with cover art and the details that matter most.</p><div className="backup-buttons"><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf('physical')}><FileDown size={18}/> Export Physical Collection PDF</button><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf('all')}><FileDown size={18}/> Export Entire Library PDF</button></div></div>}
     {!wizard&&<div className="settings-section"><h2>Game artwork</h2><p className="muted">Find missing thumbnails and choose images in a dedicated window.</p><button className="quiet" disabled={busy||updating} onClick={onArtwork}>Check for missing artwork</button></div>}
     {!wizard&&<div className="settings-section">
      <h2>Application updates</h2>
