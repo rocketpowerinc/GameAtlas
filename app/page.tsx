@@ -23,6 +23,7 @@ import {
   LayoutGrid,
   List,
   Download,
+  ImageUp,
   RefreshCw,
   Trash2,
   Heart,
@@ -376,6 +377,18 @@ export default function Home() {
         e instanceof Error ? e.message : 'Could not load your collection.',
       );
     }
+  }
+  async function replaceArtwork(game:Game){
+    setBusy(true);setError('');
+    try{
+      const url=await window.gameAtlas.chooseArtworkFile(game.id);
+      if(!url)return;
+      setDraft(current=>current?.id===game.id?{...current,lookup:{...current.lookup,sources:current.lookup?.sources??[],coverUrl:url}}:current);
+      await reload();
+      window.dispatchEvent(new Event('artwork-updated'));
+      setNotice('Artwork replaced and saved');
+    }catch(e){setError(e instanceof Error?e.message:String(e));}
+    finally{setBusy(false);}
   }
   useEffect(() => {
     const handler = (event: Event) => setError((event as CustomEvent<string>).detail);
@@ -877,18 +890,21 @@ export default function Home() {
               }}
             >
               {!isNewGame && (
-                <button
-                  type="button"
-                  className="quiet"
-                  disabled={lookupBusy}
-                  onClick={() => {
-                    setArtworkGameId(draft.id);
-                    setLookupQuery(title(draft, fields));
-                    setLookupRetry((n) => n + 1);
-                  }}
-                >
-                  <Search size={16} /> Find artwork & description
-                </button>
+                <div className="backup-buttons">
+                  <button
+                    type="button"
+                    className="quiet"
+                    disabled={lookupBusy||busy}
+                    onClick={() => {
+                      setArtworkGameId(draft.id);
+                      setLookupQuery(title(draft, fields));
+                      setLookupRetry((n) => n + 1);
+                    }}
+                  >
+                    <Search size={16} /> Find artwork & description
+                  </button>
+                  <button type="button" className="quiet" disabled={lookupBusy||busy} onClick={()=>void replaceArtwork(draft)}><ImageUp size={16}/> Replace artwork with image file</button>
+                </div>
               )}
               {(isNewGame || artworkLookup) && (
                 <section

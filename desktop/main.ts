@@ -86,7 +86,7 @@ app.whenReady().then(async()=>{
    const url='https://local-art.gameatlas.invalid/'+createHash('sha256').update(bytes).digest('hex');
    const key=createHash('sha256').update(url).digest('hex'),destination=join(store.directory,'artwork',key);
    writeFileSync(destination+'.type','image/png');writeFileSync(destination+'.tmp',bytes);renameSync(destination+'.tmp',destination);
-   await scan.apply(id,url);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);return true;
+   await scan.apply(id,url);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);return url;
   }finally{backupBusy=false;}
  });
  const updater=new DesktopUpdater(store,status=>window?.webContents.send('update-status',status));
@@ -403,6 +403,7 @@ app.whenReady().then(async()=>{
    await window.webContents.executeJavaScript(`(async()=>{
     if(!document.querySelector('[aria-label="Filter by ESRB rating"]'))throw Error('ESRB filter missing');
     document.querySelector('.game-card-main').click();await new Promise(r=>setTimeout(r,150));
+    if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Replace artwork')))throw Error('Replace artwork button missing');
     const rating=document.querySelector('#edit-ESRB');if(!rating||rating.value!=='Unknown')throw Error('ESRB migration/editor failed');
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(rating,'T — Teen');rating.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,100));
     [...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Save game').click();await new Promise(r=>setTimeout(r,300));
