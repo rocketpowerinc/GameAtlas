@@ -707,12 +707,16 @@ footer {
   font-size: 12px;
   font-weight: 650;
 }
-.game-page-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.game-page-edit-top {
+  position:absolute;
+  top:8px;
+  right:46px;
+  z-index:2;
+  min-height:32px;
+  padding:5px 9px;
+  border-radius:7px;
+  font-size:12px;
 }
-.game-page-actions a { text-decoration: none; }
 .game-page-source-links {
   display:flex;
   align-items:center;
@@ -804,7 +808,7 @@ footer {
   .game-page-intro { padding:0; }
   .game-page-intro [data-slot='dialog-title'] { font-size:32px; }
   .game-page-properties dl { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .game-page-actions .primary,.game-page-actions .quiet { flex:1 1 auto; }
+  .game-page-edit-top { min-height:32px; }
 }
 @media (max-width: 430px) {
   .game-page-properties dl { grid-template-columns:1fr; }

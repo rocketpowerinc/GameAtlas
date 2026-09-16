@@ -406,11 +406,11 @@ app.whenReady().then(async()=>{
     if(!document.querySelector('.game-page')||document.querySelector('#edit-ESRB'))throw Error('Game page did not open read-only');
     if(!document.querySelector('.game-page-notes')?.textContent.includes('Remember this test note.')||[...document.querySelectorAll('.game-page-properties dd')].some(value=>value.textContent.trim()==='Not set'))throw Error('Game page notes or empty-property handling failed');
     if(document.querySelectorAll('.game-page-source-links a').length!==2||!document.querySelector('.game-page-source-links')?.textContent.includes('IGN')||!document.querySelector('.game-page-source-links')?.textContent.includes('Steam'))throw Error('Multiple game sources are unclear');
-    const edit=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Edit game');if(!edit)throw Error('Edit game button missing');
+    const edit=document.querySelector('.game-page-edit-top');if(!edit||edit.textContent.trim()!=='Edit'||[...document.querySelectorAll('.game-page a')].some(a=>a.textContent.includes('Game website')))throw Error('Compact edit button or website removal failed');
    })()`);
    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','game-page.png'),(await window.webContents.capturePage()).toPNG());
    await window.webContents.executeJavaScript(`(async()=>{
-    const edit=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Edit game');if(!edit)throw Error('Edit game button missing');
+    const edit=document.querySelector('.game-page-edit-top');if(!edit)throw Error('Edit button missing');
     edit.click();await new Promise(r=>setTimeout(r,150));
     if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Replace artwork')))throw Error('Replace artwork button missing');
     const rating=document.querySelector('#edit-ESRB');if(!rating||rating.value!=='Unknown')throw Error('ESRB migration/editor failed');

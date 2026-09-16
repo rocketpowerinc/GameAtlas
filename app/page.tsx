@@ -873,6 +873,7 @@ export default function Home() {
       >
         <DialogContent className={draft&&!isNewGame&&!editingGame?'game-page':'editor'}>
           {draft&&!isNewGame&&!editingGame ? <>
+            <button className="quiet game-page-edit-top" type="button" onClick={()=>setEditingGame(true)}><Pencil size={14}/> Edit</button>
             <div className="game-page-hero">
               <div className="game-page-art"><GameThumbnail key={draft.lookup?.coverUrl} url={draft.lookup?.coverUrl} variant="card"/></div>
               <div className="game-page-intro">
@@ -888,10 +889,6 @@ export default function Home() {
                   {display(draft.values['Wishlist Priority'])&&<span>Priority: {display(draft.values['Wishlist Priority'])}</span>}
                   {draft.values.Score!==''&&draft.values.Score!==undefined&&<span>Score {display(draft.values.Score)} / 10</span>}
                   <span>ESRB {display(draft.values.ESRB)||'Unknown'}</span>
-                </div>
-                <div className="game-page-actions">
-                  <button className="primary" type="button" onClick={()=>setEditingGame(true)}><Pencil size={17}/> Edit game</button>
-                  {safeLink(draft.values.Link)&&<a className="quiet" href={safeLink(draft.values.Link)} target="_blank" rel="noopener noreferrer">Game website <ArrowUpRight size={17}/></a>}
                 </div>
                 {gamePageSources.length>1&&<div className="game-page-source-links"><small>Sources</small>{gamePageSources.map(source=><a key={source.url} href={safeLink(source.url)} target="_blank" rel="noopener noreferrer">{source.name} <ArrowUpRight size={13}/></a>)}</div>}
               </div>
