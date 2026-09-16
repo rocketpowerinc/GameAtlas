@@ -31,6 +31,8 @@ import {
   Monitor,
   ArrowUpRight,
   Check,
+  Pencil,
+  ArrowLeft,
   Library as LibraryIcon,
 } from 'lucide-react';
 import {
@@ -154,6 +156,7 @@ export default function Home() {
     [layout, setLayout] = useState('grid'),
     [limit, setLimit] = useState(48),
     [draft, setDraft] = useState<Game | null>(null),
+    [editingGame,setEditingGame] = useState(false),
     [settings, setSettings] = useState(false),
     [dashboard,setDashboard] = useState(false),
     [dashboardFilter,setDashboardFilter] = useState<{label:string;ids:string[]}|null>(null),
@@ -435,6 +438,7 @@ export default function Home() {
   }
   function addGame() {
     if (!data) return;
+    setEditingGame(true);
     setLookupQuery('');
     setLookupMatches([]);
     setLookupStatus('');
@@ -454,6 +458,12 @@ export default function Home() {
         ]),
       ),
     });
+  }
+  function openGame(game:Game){
+    setError('');
+    setEditingGame(false);
+    setArtworkGameId(null);
+    setDraft(structuredClone(game));
   }
   useEffect(() => {
     const ctx = (document as any).modelContext;
@@ -559,7 +569,7 @@ export default function Home() {
           </button>
         </div>
       </header>
-      {dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={g=>setDraft(structuredClone(g))} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
+      {dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
         <div className="collection-heading">
           <div>
             <p className="eyebrow">YOUR COLLECTION, ALL TOGETHER</p>
@@ -747,7 +757,7 @@ export default function Home() {
               <article className="game-card" key={g.id}>
                 <button
                   className="game-card-main"
-                  onClick={() => setDraft(structuredClone(g))}
+                  onClick={() => openGame(g)}
                 >
                   <div className={`game-art ${scoreTone(g.values.Score)}`}>
                     <div className="card-top">
@@ -808,7 +818,7 @@ export default function Home() {
                   <TableCell>
                     <button
                       className="table-title"
-                      onClick={() => setDraft(structuredClone(g))}
+                      onClick={() => openGame(g)}
                     >
                       <GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="list" />
                       <span>{title(g, fields)}</span>
@@ -854,9 +864,40 @@ export default function Home() {
       </section>}
       <Dialog
         open={!!draft}
-        onOpenChange={(o) => !o && !busy && setDraft(null)}
+        onOpenChange={(o) => {if(!o&&!busy){setDraft(null);setEditingGame(false);}}}
       >
-        <DialogContent className="editor">
+        <DialogContent className={draft&&!isNewGame&&!editingGame?'game-page':'editor'}>
+          {draft&&!isNewGame&&!editingGame ? <>
+            <div className="game-page-hero">
+              <div className="game-page-art"><GameThumbnail key={draft.lookup?.coverUrl} url={draft.lookup?.coverUrl} variant="card"/></div>
+              <div className="game-page-intro">
+                <p className="eyebrow">{display(draft.values.Studio)||'STUDIO NOT SET'}{display(draft.values['Release Date'])?' · '+display(draft.values['Release Date']):''}</p>
+                <DialogTitle>{title(draft,fields).replace(/^\*\*|\*\*$/g,'')}</DialogTitle>
+                <DialogDescription>{draft.lookup?.description||'No description has been added for this game yet.'}</DialogDescription>
+                <div className="game-page-highlights">
+                  {display(draft.values.Platform)&&<span>{display(draft.values.Platform)}</span>}
+                  {display(draft.values.Ownership)&&<span>{display(draft.values.Ownership)}</span>}
+                  {display(draft.values.Status)&&<span>{display(draft.values.Status)}</span>}
+                  {draft.values.Score!==''&&draft.values.Score!==undefined&&<span>Score {display(draft.values.Score)} / 10</span>}
+                  <span>ESRB {display(draft.values.ESRB)||'Unknown'}</span>
+                </div>
+                <div className="game-page-actions">
+                  <button className="primary" type="button" onClick={()=>setEditingGame(true)}><Pencil size={17}/> Edit game</button>
+                  {safeLink(draft.values.Link)&&<a className="quiet" href={safeLink(draft.values.Link)} target="_blank" rel="noopener noreferrer">Game website <ArrowUpRight size={17}/></a>}
+                </div>
+              </div>
+            </div>
+            <section className="game-page-properties" aria-label="Game properties">
+              <h2>Game details</h2>
+              <dl>{fields.filter(f=>f.id!=='Title').map(f=>{
+                const value=f.id==='Release Date'&&draft.dateEnd?`${display(draft.values[f.id])||'Not set'} to ${draft.dateEnd}`:display(draft.values[f.id]);
+                const link=f.type==='url'?safeLink(draft.values[f.id]):'';
+                return <div key={f.id}><dt>{f.name}</dt><dd>{link?<a href={link} target="_blank" rel="noopener noreferrer">Open link <ArrowUpRight size={14}/></a>:value||'Not set'}</dd></div>;
+              })}</dl>
+            </section>
+            {!!draft.lookup?.sources.length&&<section className="game-page-sources"><h2>Information sources</h2><div>{draft.lookup.sources.map(source=><a key={source.url} href={safeLink(source.url)} target="_blank" rel="noopener noreferrer">{source.name} <ArrowUpRight size={14}/></a>)}</div></section>}
+          </> : <>
+          {draft&&!isNewGame&&<button type="button" className="text-button game-page-back" onClick={()=>{const original=games.find(game=>game.id===draft.id);if(original)setDraft(structuredClone(original));setEditingGame(false);}}><ArrowLeft size={16}/> Back to game page</button>}
           <DialogTitle>
             {draft && games.some((g) => g.id === draft.id)
               ? 'Edit game'
@@ -1199,6 +1240,7 @@ export default function Home() {
               </div>
             </form>
           )}
+          </>}
         </DialogContent>
       </Dialog>
       {!artworkOpen&&<DesktopSettings open={settings} onOpenChange={setSettings} onReload={reload} onArtwork={()=>{setSettings(false);setArtworkOpen(true);}}/>}

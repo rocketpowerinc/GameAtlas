@@ -403,6 +403,13 @@ app.whenReady().then(async()=>{
    await window.webContents.executeJavaScript(`(async()=>{
     if(!document.querySelector('[aria-label="Filter by ESRB rating"]'))throw Error('ESRB filter missing');
     document.querySelector('.game-card-main').click();await new Promise(r=>setTimeout(r,150));
+    if(!document.querySelector('.game-page')||document.querySelector('#edit-ESRB'))throw Error('Game page did not open read-only');
+    const edit=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Edit game');if(!edit)throw Error('Edit game button missing');
+   })()`);
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','game-page.png'),(await window.webContents.capturePage()).toPNG());
+   await window.webContents.executeJavaScript(`(async()=>{
+    const edit=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Edit game');if(!edit)throw Error('Edit game button missing');
+    edit.click();await new Promise(r=>setTimeout(r,150));
     if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Replace artwork')))throw Error('Replace artwork button missing');
     const rating=document.querySelector('#edit-ESRB');if(!rating||rating.value!=='Unknown')throw Error('ESRB migration/editor failed');
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(rating,'T — Teen');rating.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,100));

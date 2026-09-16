@@ -82,3 +82,5 @@ ESRB ratings appear on game cards and in list view. Use the ESRB filter or sort 
 Use **Settings > Create Collection PDF** to export either the games you own physically or your entire library. Both printable catalogs include a cover page, collection totals, cached cover art, pertinent game details, notes, clickable website links, and page numbers.
 
 Open any existing game and choose **Replace artwork with image file** to use your own PNG, JPG, WebP, GIF, or AVIF image. GameAtlas stores a safe local copy with the library, so it is included in complete backups and restores.
+
+Opening a game first shows a clean, read-only game page with larger artwork, its description, highlights, and every property. Choose **Edit game** when you want to change its information or artwork, and **Back to game page** to leave the editor without keeping unsaved property changes.
