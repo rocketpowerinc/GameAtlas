@@ -27,7 +27,7 @@ Use the cog beside Add game to reopen Settings. The footer shortcut and all prop
 - Backup failures are reported after saving a game or in Settings; the game remains saved locally.
 
 ## Collection dashboard
-Use Dashboard at the top of the app for a live summary of the whole collection: owned, completed, Must Play, Replay, wishlist, playing and total entries. Owned means Physical or Digital, with dual-format games counted once. Must Play and Replay recognize matching values in either Status or Tags, and games without a status are shown separately.
+Use Dashboard at the top of the app for two clear summary rows: All Games, Owned Physical, Owned Digital, Completed, then Playing, Must Play, Replay and Wish List. Must Play and Replay recognize matching values in either Status or Tags, and each summary opens its matching games.
 
 The dashboard includes completion progress, owned platform/genre breakdowns and the five highest-rated owned games. Click totals or chart rows to browse those games, or a ranked game to open its details. Dashboard figures ignore active library search filters and update when your library changes.
 
@@ -83,6 +83,6 @@ Use **Settings > Create Collection PDF** to export either the games you own phys
 
 Open any existing game and choose **Upload file to replace artwork** to use your own PNG, JPG, WebP, GIF, or AVIF image. GameAtlas stores a safe local copy with the library, so it is included in complete backups and restores.
 
-Game descriptions can be edited directly in the game editor. Use **Settings > Find missing descriptions** to review games that show the missing-description message and add the correct text manually. The library uses a focused tile layout with release dates shown directly on each game card.
+Game descriptions can be edited directly in the game editor. Use **Settings > Find missing descriptions** to review games that show the missing-description message, search online for a suggested description, then review and save the text. The library uses a focused tile layout with release dates shown directly on each game card.
 
 Opening a game first shows a clean, read-only game page with larger artwork, its description, and pertinent information as compact badges. Empty properties stay hidden. A single source is not repeated; when a game has multiple distinct sources, compact labeled links such as IGN and Steam appear near the top. Personal notes appear in a full-width Notes box at the bottom. Use the compact **Edit** button beside the close button when you want to change information or artwork, and **Back to game page** to leave the editor without keeping unsaved property changes.

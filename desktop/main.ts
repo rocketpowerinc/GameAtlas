@@ -248,8 +248,9 @@ app.whenReady().then(async()=>{
     const search=document.querySelector('.library-search').getBoundingClientRect(),filters=[...document.querySelectorAll('.filter-row .picker')].map(element=>element.getBoundingClientRect());
     if(filters.length!==5||filters.some(filter=>filter.top<search.bottom)||Math.max(...filters.map(filter=>filter.width))-Math.min(...filters.map(filter=>filter.width))>2)throw Error('Search and filter layout is uneven');
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Dashboard').click();await wait();
-    if(!document.querySelector('.collection-dashboard')||!document.querySelector('[aria-label="Owned: 1 games"]')||!document.querySelector('[aria-label="Must Play: 1 games"]')||!document.querySelector('[aria-label="Replay: 0 games"]')||document.querySelector('[aria-label^="Unplayed:"]'))throw Error('Dashboard totals are wrong');
-    document.querySelector('[aria-label="Owned: 1 games"]').click();await wait();
+    const dashboardCards=[...document.querySelectorAll('.dashboard-total')].map(card=>card.querySelector('span')?.textContent);
+    if(!document.querySelector('.collection-dashboard')||dashboardCards.join('|')!=='All Games|Owned Physical|Owned Digital|Completed|Playing|Must Play|Replay|Wish List'||!document.querySelector('[aria-label="All Games: 1 games"]')||!document.querySelector('[aria-label="Owned Physical: 1 games"]')||!document.querySelector('[aria-label="Owned Digital: 0 games"]')||!document.querySelector('[aria-label="Must Play: 1 games"]')||!document.querySelector('[aria-label="Replay: 0 games"]'))throw Error('Dashboard totals are wrong');
+    document.querySelector('[aria-label="Owned Physical: 1 games"]').click();await wait();
     if(!document.querySelector('.dashboard-filter')||document.querySelectorAll('.game-card').length!==1)throw Error('Dashboard drill-down failed');
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Show all games').click();
     document.querySelector('[aria-label="Settings"]').click();await wait();
@@ -353,7 +354,13 @@ app.whenReady().then(async()=>{
    try{await simulated.install('98.0.0');throw Error('Wrong release accepted');}catch(e){if(!(e instanceof Error)||!e.message.includes('review'))throw e;}
    if((await simulated.install('99.0.0')).state!=='installing'||downloads!==1||!launched||!finished)throw Error('Confirmed install failed');
    let networkCalls=0;
-   globalThis.fetch=(async()=>{networkCalls++;return Response.json({tag_name:'v99.0.0',draft:false,prerelease:false,body:'Clearer artwork review and faster library browsing.',assets:[{id:42,name:'GameAtlas.Setup.99.0.0.exe',state:'uploaded',size:1,digest:'sha256:'+'a'.repeat(64)}]});}) as typeof fetch;
+   globalThis.fetch=(async(input:any)=>{
+    const url=String(input);
+    if(url.includes('list=search'))return Response.json({query:{search:[{title:'Test game',snippet:'Test game is a video game.',pageid:1}]}});
+    if(url.includes('storesearch'))return Response.json({items:[]});
+    if(url.includes('action=parse'))return Response.json({parse:{title:'Test game',text:{'*':'<table class="ib-video-game"></table><p>Test description found online with enough useful detail for the player to review before saving it.</p>'}}});
+    networkCalls++;return Response.json({tag_name:'v99.0.0',draft:false,prerelease:false,body:'Clearer artwork review and faster library browsing.',assets:[{id:42,name:'GameAtlas.Setup.99.0.0.exe',state:'uploaded',size:1,digest:'sha256:'+'a'.repeat(64)}]});
+   }) as typeof fetch;
    try{
     await window.webContents.executeJavaScript(`(async()=>{
      const pause=()=>new Promise(r=>setTimeout(r,100));
@@ -367,6 +374,9 @@ app.whenReady().then(async()=>{
      if(document.querySelector('.settings-editor')||!document.querySelector('.description-missing-game')?.textContent.includes('Test game'))throw Error('Missing-description list failed');
      document.querySelector('.description-missing-game').click();await pause();
      const textarea=document.querySelector('#missing-game-description');if(!textarea)throw Error('Manual description editor missing');
+     const searchDescription=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Search for description'));if(!searchDescription)throw Error('Description search button missing');
+     searchDescription.click();for(let n=0;n<50&&!textarea.value.includes('Test description found online');n++)await pause();
+     if(!textarea.value.includes('Test description found online'))throw Error('Description search did not fill the editor');
      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(textarea,'A manually added description.');textarea.dispatchEvent(new Event('input',{bubbles:true}));
      [...document.querySelectorAll('button')].find(b=>b.textContent==='Save description').click();
      for(let n=0;n<30&&document.querySelector('.description-missing-game');n++)await pause();
