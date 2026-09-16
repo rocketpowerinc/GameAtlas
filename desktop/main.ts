@@ -247,7 +247,10 @@ app.whenReady().then(async()=>{
     const rejected=await window.gameAtlas.request('/api/library','PUT',{...saved.data,fields:[]});
     if(rejected.ok)throw Error('Property editing was accepted');
     window.dispatchEvent(new Event('library-updated'));await wait();
-    if(!document.querySelector('.game-card')||!document.querySelector('.game-release-date')?.textContent.includes('2024-01-02'))throw Error('Game card or release date missing');
+    const compact=document.querySelector('.game-card-compact');
+    if(!compact||!compact.classList.contains('score-great')||compact.querySelector('h2')?.textContent!=='Test game'||compact.querySelector('.game-info')||compact.querySelector('.card-bottom'))throw Error('Compact card is not artwork-and-title only or lost its score colour');
+    [...document.querySelectorAll('.card-view-toggle button')].find(b=>b.textContent.includes('Standard')).click();await wait();
+    if(!document.querySelector('.game-card')||!document.querySelector('.game-release-date')?.textContent.includes('2024-01-02'))throw Error('Standard card or release date missing');
     if(document.querySelector('.game-link')?.href!=='https://www.ign.com/games/test-game')throw Error('Card shortcut did not prioritize IGN');
     if(document.querySelector('[aria-label="Refresh library"]')||document.querySelector('[aria-label="Grid view"]')||document.querySelector('[aria-label="Table view"]')||document.querySelector('.library-table'))throw Error('Removed library controls remain');
     const search=document.querySelector('.library-search').getBoundingClientRect(),filters=[...document.querySelectorAll('.filter-row .picker')].map(element=>element.getBoundingClientRect());

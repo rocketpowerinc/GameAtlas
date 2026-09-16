@@ -34,6 +34,8 @@ import {
   ArrowLeft,
   Library as LibraryIcon,
   Video,
+  LayoutGrid,
+  Grid3X3,
 } from 'lucide-react';
 import {
   Dialog,
@@ -160,6 +162,7 @@ export default function Home() {
     [status, setStatus] = useState('All statuses'),
     [esrb, setEsrb] = useState('All ESRB ratings'),
     [sort, setSort] = useState('Title A–Z'),
+    [cardView, setCardView] = useState<'standard'|'compact'>(()=>{try{return localStorage.getItem('gameatlas-card-view')==='standard'?'standard':'compact';}catch{return 'compact';}}),
     [limit, setLimit] = useState(48),
     [draft, setDraft] = useState<Game | null>(null),
     [editingGame,setEditingGame] = useState(false),
@@ -716,6 +719,10 @@ export default function Home() {
               </button>
             )}
           </p>
+          <div className="card-view-toggle" aria-label="Card size">
+            <button className={cardView==='standard'?'selected':''} aria-pressed={cardView==='standard'} onClick={()=>{setCardView('standard');try{localStorage.setItem('gameatlas-card-view','standard');}catch{}}}><LayoutGrid size={16}/> Standard</button>
+            <button className={cardView==='compact'?'selected':''} aria-pressed={cardView==='compact'} onClick={()=>{setCardView('compact');try{localStorage.setItem('gameatlas-card-view','compact');}catch{}}}><Grid3X3 size={16}/> Compact</button>
+          </div>
         </div>
         {!data ? (
           <div className="game-grid">
@@ -740,9 +747,14 @@ export default function Home() {
             </button>
           </Empty>
         ) : (
-          <div className="game-grid">
+          <div className={`game-grid ${cardView==='compact'?'game-grid-compact':''}`}>
             {filtered.slice(0, limit).map((g) => (
-              <article className="game-card" key={g.id}>
+              cardView==='compact'?<article className={`game-card game-card-compact ${scoreTone(g.values.Score)}`} key={g.id}>
+                <button className="compact-card-main" onClick={()=>openGame(g)} aria-label={`Open ${title(g,fields)}`}>
+                  <div className="compact-card-art"><GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="card" /></div>
+                  <h2>{title(g,fields).replace(/^\*\*|\*\*$/g,'')}</h2>
+                </button>
+              </article>:<article className="game-card" key={g.id}>
                 <button
                   className="game-card-main"
                   onClick={() => openGame(g)}

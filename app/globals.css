@@ -453,6 +453,10 @@ h2 {
   color: var(--muted-foreground);
   font-size: 14px;
 }
+.card-view-toggle{display:flex;align-items:center;gap:3px;padding:3px;border:1px solid var(--border);border-radius:9px;background:var(--card);flex-shrink:0}
+.card-view-toggle button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:6px 10px;border-radius:6px;color:var(--muted-foreground);font-size:12px;font-weight:650}
+.card-view-toggle button:hover{color:var(--foreground);background:var(--accent)}
+.card-view-toggle button.selected{color:var(--foreground);background:var(--secondary)}
 .selected {
   color: var(--primary);
   background: var(--secondary);
@@ -1201,6 +1205,16 @@ footer {
   padding: 12px 0 14px;
   border-top: 1px solid var(--border);
 }
+.game-grid-compact{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px}
+.game-card-compact{border-color:color-mix(in srgb,currentColor 48%,var(--border));border-radius:8px}
+.game-card-compact:hover{border-color:currentColor;transform:translateY(-2px)}
+.compact-card-main{display:flex;flex-direction:column;width:100%;height:100%;text-align:left;color:inherit}
+.compact-card-art{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:3 / 4;overflow:hidden;background:var(--card)}
+.compact-card-art .game-thumbnail-card{width:100%;height:100%;border-radius:0;object-fit:cover;box-shadow:none}
+.compact-card-art > svg{opacity:.45}
+.game-card-compact h2{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;min-height:40px;margin:0;padding:7px 8px 8px;color:inherit;font-size:12px;line-height:1.35;font-weight:700;overflow-wrap:anywhere}
+[data-theme='light'] .game-card-compact{border-color:color-mix(in srgb,currentColor 58%,var(--border))}
+[data-theme='light'] .compact-card-art{background:#fff}
 .game-link,
 .table-link {
   display: inline-flex;
@@ -1371,6 +1385,7 @@ footer .brand-name{font-size:inherit}
 [data-theme='light'] .game-thumbnail { background: #ffffff80; box-shadow: 0 2px 7px #0002; }
 @media(max-width:1050px) { .brand span { display:none; } }
 @media(max-width:650px) { .masthead { flex-wrap:wrap; } .header-actions { flex-wrap:wrap; } }
+@media(max-width:640px){.game-grid-compact{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}.game-card-compact h2{min-height:38px;padding:6px;font-size:11px}.card-view-toggle button{padding:6px 8px}.card-view-toggle button svg{display:none}}
 
 .dashboard-average-chart{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;margin:24px 0;text-align:center}
 .dashboard-score-ring{width:180px;height:180px}
