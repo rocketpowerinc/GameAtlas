@@ -63,6 +63,7 @@ import { Empty, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   display,
+  dedupeSources,
   preferredSourceUrl,
   validate,
   type Library,
@@ -223,9 +224,7 @@ export default function Home() {
             ...current,
             lookup: {
               ...current.lookup,
-              sources: sources.filter(
-                (s, i) => sources.findIndex((x) => x.url === s.url) === i,
-              ),
+              sources: dedupeSources(sources),
               coverUrl: result.coverUrl || current.lookup?.coverUrl,
               description: result.description || current.lookup?.description,
             },
@@ -554,7 +553,7 @@ export default function Home() {
     !['Title','Studio','Release Date','Platform','Ownership','Genre','Status','Tags','Score','ESRB','Link','Notes','Wishlist Priority'].includes(field.id)&&
     display(draft.values[field.id]).trim()!==''
   ):[];
-  const gamePageSources=draft?[...new Map((draft.lookup?.sources??[]).filter(source=>safeLink(source.url)).map(source=>[safeLink(source.url),source])).values()]:[];
+  const gamePageSources=draft?dedupeSources(draft.lookup?.sources).filter(source=>safeLink(source.url)):[];
   return (
     <main className="atlas">
       <header className="masthead">

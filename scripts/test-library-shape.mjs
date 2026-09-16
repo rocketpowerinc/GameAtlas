@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-const {withCurrentLibraryShape,preferredSourceUrl}=createRequire(import.meta.url)('../desktop-dist/library.cjs');
+const {withCurrentLibraryShape,preferredSourceUrl,dedupeSources}=createRequire(import.meta.url)('../desktop-dist/library.cjs');
 
 const original={revision:4,fields:[
  {id:'title',name:'Title',type:'text',options:[]},
@@ -23,4 +23,5 @@ assert.equal(preferredSourceUrl([{name:'Steam',url:'steam'},{name:'HowLongToBeat
 assert.equal(preferredSourceUrl([{name:'Steam',url:'steam'},{name:'HowLongToBeat',url:'hltb'},{name:'Wikipedia',url:'wiki'},{name:'YouTube',url:'youtube'}]),'youtube');
 assert.equal(preferredSourceUrl([{name:'Steam',url:'steam'},{name:'HowLongToBeat',url:'hltb'}]),'hltb');
 assert.equal(preferredSourceUrl([{name:'Steam',url:'steam'}]),'');
+assert.deepEqual(dedupeSources([{name:'Wikipedia',url:'https://en.wikipedia.org/?curid=1'},{name:'HowLongToBeat',url:'hltb'},{name:'Wikipedia',url:'https://en.wikipedia.org/wiki/Example'}]),[{name:'HowLongToBeat',url:'hltb'},{name:'Wikipedia',url:'https://en.wikipedia.org/wiki/Example'}]);
 console.log('PASS: retired fields and date ranges are removed, legacy links become sources, Want Soon is removed, and card links follow source priority.');

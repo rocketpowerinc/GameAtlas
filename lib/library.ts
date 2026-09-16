@@ -2,9 +2,16 @@ export type Field = {id:string;name:string;type:'text'|'multi_select'|'number'|'
 export type Game = {id:string;values:Record<string,string|number|boolean|string[]>;esrb?:{url:string;title:string;platforms:string[];checkedAt:string};sourceUrl?:string;lookup?:{sources:{name:string;url:string}[];scoreSource?:string;releaseNote?:string;coverUrl?:string;description?:string}};
 export type Library = {fields:Field[];games:Game[];revision:number};
 export const display = (v:unknown):string => Array.isArray(v)?v.join(', '):v===undefined||v===null?'':String(v);
+export function dedupeSources(sources:NonNullable<Game['lookup']>['sources']|undefined){
+ const byName=new Map<string,{name:string;url:string}>();
+ for(const source of sources??[]){if(typeof source?.name!=='string'||typeof source?.url!=='string'||!source.name.trim()||!source.url.trim())continue;const key=source.name.trim().toLowerCase();if(byName.has(key))byName.delete(key);byName.set(key,{name:source.name.trim(),url:source.url.trim()});}
+ const byUrl=new Map<string,{name:string;url:string}>();
+ for(const source of byName.values()){if(byUrl.has(source.url))byUrl.delete(source.url);byUrl.set(source.url,source);}
+ return [...byUrl.values()];
+}
 export function preferredSourceUrl(sources:NonNullable<Game['lookup']>['sources']|undefined){
  const order=['ign','youtube','wikipedia','howlongtobeat'];
- for(const name of order){const source=sources?.find(item=>item.name.trim().toLowerCase()===name);if(source?.url)return source.url;}
+ for(const name of order){const source=dedupeSources(sources).find(item=>item.name.trim().toLowerCase()===name);if(source?.url)return source.url;}
  return '';
 }
 const sourceName=(raw:string)=>{try{const host=new URL(raw).hostname.toLowerCase();if(host==='youtu.be'||host.endsWith('youtube.com'))return 'YouTube';if(host.endsWith('ign.com'))return 'IGN';if(host.endsWith('wikipedia.org'))return 'Wikipedia';if(host.endsWith('howlongtobeat.com'))return 'HowLongToBeat';if(host.endsWith('steampowered.com'))return 'Steam';}catch{}return 'Website';};
@@ -15,6 +22,7 @@ export function withCurrentLibraryShape(library:Library):Library{
  next.fields=next.fields.filter(field=>!retired.has(field.id)).map(field=>field.id===priority?.id?{...field,options:field.options.filter(option=>option.trim().toLowerCase()!=='want soon')}:field);
  for(const game of next.games){
   for(const id of linkIds){const url=typeof game.values[id]==='string'?game.values[id].trim():'';if(/^https?:\/\//i.test(url)){const sources=game.lookup?.sources??[];if(!sources.some(source=>source.url===url))game.lookup={...game.lookup,sources:[...sources,{name:sourceName(url),url}]};}}
+  if(game.lookup)game.lookup={...game.lookup,sources:dedupeSources(game.lookup.sources)};
   for(const id of retired)delete game.values[id];
   if(priority){const value=game.values[priority.id];if(Array.isArray(value))game.values[priority.id]=value.filter(option=>option.trim().toLowerCase()!=='want soon');else if(typeof value==='string'&&value.trim().toLowerCase()==='want soon')game.values[priority.id]='';}
   delete (game as Game&{dateEnd?:string}).dateEnd;delete (game as Game&{dateIsTime?:number}).dateIsTime;
