@@ -972,43 +972,6 @@ export default function Home() {
                   })}
                 </div>
               </section>
-              {draft.lookup && (
-                <div className="lookup-sources">
-                  {safeLink(draft.lookup.coverUrl) && (
-                    <img
-                      key={draft.lookup.coverUrl}
-                      className="lookup-cover"
-                      src={artworkUrl(safeLink(draft.lookup.coverUrl))}
-                      alt="Game cover"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        e.currentTarget.hidden = true;
-                      }}
-                    />
-                  )}
-                  <div>
-                    <p>
-                      Sources:{' '}
-                      {draft.lookup.sources.map((s) => (
-                        <a
-                          key={s.url}
-                          href={safeLink(s.url)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {s.name} ↗{' '}
-                        </a>
-                      ))}
-                    </p>
-                    {draft.lookup.scoreSource && (
-                      <p>Score: {draft.lookup.scoreSource}</p>
-                    )}
-                    {draft.lookup.releaseNote && (
-                      <p>Release details: {draft.lookup.releaseNote}</p>
-                    )}
-                  </div>
-                </div>
-              )}
               <div className="field-grid">
                 {fields.filter(field=>field.id!=='Title').map((f) => (
                   <div
