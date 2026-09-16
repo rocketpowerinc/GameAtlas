@@ -248,7 +248,7 @@ app.whenReady().then(async()=>{
     const search=document.querySelector('.library-search').getBoundingClientRect(),filters=[...document.querySelectorAll('.filter-row .picker')].map(element=>element.getBoundingClientRect());
     if(filters.length!==5||filters.some(filter=>filter.top<search.bottom)||Math.max(...filters.map(filter=>filter.width))-Math.min(...filters.map(filter=>filter.width))>2)throw Error('Search and filter layout is uneven');
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Dashboard').click();await wait();
-    if(!document.querySelector('.collection-dashboard')||!document.querySelector('[aria-label="Owned: 1 games"]')||!document.querySelector('[aria-label="Unplayed: 1 games"]'))throw Error('Dashboard totals are wrong');
+    if(!document.querySelector('.collection-dashboard')||!document.querySelector('[aria-label="Owned: 1 games"]')||!document.querySelector('[aria-label="Must Play: 1 games"]')||!document.querySelector('[aria-label="Replay: 0 games"]')||document.querySelector('[aria-label^="Unplayed:"]'))throw Error('Dashboard totals are wrong');
     document.querySelector('[aria-label="Owned: 1 games"]').click();await wait();
     if(!document.querySelector('.dashboard-filter')||document.querySelectorAll('.game-card').length!==1)throw Error('Dashboard drill-down failed');
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Show all games').click();

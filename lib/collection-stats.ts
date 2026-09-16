@@ -1,13 +1,15 @@
 import type {Library,Game} from './library';
 export function collectionStats(library:Library,now=new Date()){
  const field=(name:string)=>library.fields.find(f=>f.name.toLowerCase()===name.toLowerCase())?.id||name;
- const own=field('Ownership'),status=field('Status'),platform=field('Platform'),genre=field('Genre'),score=field('Score'),title=field('Title');
+ const own=field('Ownership'),status=field('Status'),tagField=field('Tags'),platform=field('Platform'),genre=field('Genre'),score=field('Score'),title=field('Title');
  const tags=(g:Game,id:string)=>[...new Set((Array.isArray(g.values[id])?g.values[id]:typeof g.values[id]==='string'?[g.values[id]]:[] as string[]).map(String).map(s=>s.trim()).filter(Boolean))];
  const has=(g:Game,id:string,value:string)=>tags(g,id).some(t=>t.toLowerCase()===value.toLowerCase());
  const owned=library.games.filter(g=>has(g,own,'Physical')||has(g,own,'Digital'));
  const completed=owned.filter(g=>has(g,status,'Complete'));
  const backlog=owned.filter(g=>(has(g,status,'Must Play')||has(g,status,'Backlog'))&&!has(g,status,'Complete')&&!has(g,status,'Currently Playing'));
  const playing=owned.filter(g=>has(g,status,'Currently Playing'));
+ const mustPlay=owned.filter(g=>has(g,status,'Must Play')||has(g,tagField,'Must Play'));
+ const replay=owned.filter(g=>has(g,status,'Replay')||has(g,tagField,'Replay'));
  const unspecified=owned.filter(g=>!tags(g,status).length);
  const wishlist=library.games.filter(g=>has(g,own,'Wish List'));
  const groups=(id:string,source=owned)=>{const map=new Map<string,Game[]>();for(const g of source)for(const label of tags(g,id).length?tags(g,id):['Not specified'])map.set(label,[...(map.get(label)||[]),g]);return [...map].map(([label,games])=>({label,games})).sort((a,b)=>b.games.length-a.games.length||a.label.localeCompare(b.label));};
@@ -33,5 +35,5 @@ export function collectionStats(library:Library,now=new Date()){
   if(!/^\d{4}-\d{2}-\d{2}(?:$|T)/.test(raw)||!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==date)releaseGroups.unknown.push(game);
   else if(date>today)releaseGroups.upcoming.push(game);else releaseGroups.released.push(game);
  }
- return {unplayedRated,developers,noStudio,wishlistPriorities,releaseGroups,total:library.games,owned,completed,backlog,playing,unspecified,wishlist,physical:owned.filter(g=>has(g,own,'Physical')),digital:owned.filter(g=>has(g,own,'Digital')),platforms:groups(platform),genres:groups(genre),rated,average:rated.length?rated.reduce((sum,g)=>sum+g.score,0)/rated.length:null,completion:owned.length?Math.round(completed.length/owned.length*100):0};
+ return {unplayedRated,developers,noStudio,wishlistPriorities,releaseGroups,total:library.games,owned,completed,backlog,mustPlay,replay,playing,unspecified,wishlist,physical:owned.filter(g=>has(g,own,'Physical')),digital:owned.filter(g=>has(g,own,'Digital')),platforms:groups(platform),genres:groups(genre),rated,average:rated.length?rated.reduce((sum,g)=>sum+g.score,0)/rated.length:null,completion:owned.length?Math.round(completed.length/owned.length*100):0};
 }

@@ -27,7 +27,7 @@ Use the cog beside Add game to reopen Settings. The footer shortcut and all prop
 - Backup failures are reported after saving a game or in Settings; the game remains saved locally.
 
 ## Collection dashboard
-Use Dashboard at the top of the app for a live summary of the whole collection: owned, completed, unplayed, wishlist, playing and total entries. Owned means Physical or Digital, with dual-format games counted once. Unplayed means Backlog excluding Complete and Currently Playing; games without a status are shown separately.
+Use Dashboard at the top of the app for a live summary of the whole collection: owned, completed, Must Play, Replay, wishlist, playing and total entries. Owned means Physical or Digital, with dual-format games counted once. Must Play and Replay recognize matching values in either Status or Tags, and games without a status are shown separately.
 
 The dashboard includes completion progress, owned platform/genre breakdowns and the five highest-rated owned games. Click totals or chart rows to browse those games, or a ranked game to open its details. Dashboard figures ignore active library search filters and update when your library changes.
 
