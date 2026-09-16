@@ -60,7 +60,7 @@ app.whenReady().then(async()=>{
   download:async url=>{const response=await artwork(url);if(!response.ok)throw Error('Artwork could not be downloaded.');},
   search:searchGames,details:gameDetails
  });
- const descriptions=new DescriptionScan(store,{search:searchGames,details:gameDetails});
+ const descriptions=new DescriptionScan(store);
  ipcMain.handle('artwork-status',event=>{trusted(event);return scan.read();});
  ipcMain.handle('cancel-artwork-scan',event=>{trusted(event);scan.cancel();});
  ipcMain.handle('scan-artwork',async event=>{
@@ -91,17 +91,14 @@ app.whenReady().then(async()=>{
    await scan.apply(id,url);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);return url;
   }finally{backupBusy=false;}
  });
- ipcMain.handle('find-missing-descriptions',async event=>{
+ ipcMain.handle('description-status',event=>{trusted(event);return descriptions.missing();});
+ ipcMain.handle('apply-description',async(event,id,description)=>{
   trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
   if(!preferences.read().setupComplete)throw Error('Finish setup first.');
+  if(typeof id!=='string'||typeof description!=='string'||description.length>6000)throw Error('Enter a valid description.');
   backupBusy=true;
-  try{
-   const result=await descriptions.run();
-   if(result.added)preferences.run(store,'change');
-   if(preferences.error)throw Error(preferences.error);
-   if(!result.total)return 'Every game already has a description.';
-   return `${result.added} descriptions added. ${result.missing} games still need a description.`;
-  }finally{backupBusy=false;}
+  try{descriptions.apply(id,description);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);}
+  finally{backupBusy=false;}
  });
  const updater=new DesktopUpdater(store,status=>window?.webContents.send('update-status',status));
  protocol.handle('atlas',async request=>{
@@ -241,12 +238,13 @@ app.whenReady().then(async()=>{
     const setter=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;setter.call(select,'manual');select.dispatchEvent(new Event('change',{bubbles:true}));await wait();
     [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Finish setup')).click();await wait();
     if(!(await window.gameAtlas.getSettings()).setupComplete)throw Error('Setup not saved');
-    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Must Play'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5,Notes:'Remember this test note.'},lookup:{description:'A concise test game description.',sources:[{name:'IGN',url:'https://www.ign.com/games/test-game'},{name:'Steam',url:'https://store.steampowered.com/app/2'}]}}]});
+    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Must Play'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5,'Release Date':'2024-01-02',Notes:'Remember this test note.'},lookup:{description:'No description has been added for this game yet.',sources:[{name:'IGN',url:'https://www.ign.com/games/test-game'},{name:'Steam',url:'https://store.steampowered.com/app/2'}]}}]});
     if(!saved.ok)throw Error('Save failed');
     const rejected=await window.gameAtlas.request('/api/library','PUT',{...saved.data,fields:[]});
     if(rejected.ok)throw Error('Property editing was accepted');
-    document.querySelector('[aria-label="Refresh library"]').click();await wait();
-    if(!document.querySelector('.game-card'))throw Error('Game card missing');
+    window.dispatchEvent(new Event('library-updated'));await wait();
+    if(!document.querySelector('.game-card')||!document.querySelector('.game-release-date')?.textContent.includes('2024-01-02'))throw Error('Game card or release date missing');
+    if(document.querySelector('[aria-label="Refresh library"]')||document.querySelector('[aria-label="Grid view"]')||document.querySelector('[aria-label="Table view"]')||document.querySelector('.library-table'))throw Error('Removed library controls remain');
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Dashboard').click();await wait();
     if(!document.querySelector('.collection-dashboard')||!document.querySelector('[aria-label="Owned: 1 games"]')||!document.querySelector('[aria-label="Unplayed: 1 games"]'))throw Error('Dashboard totals are wrong');
     document.querySelector('[aria-label="Owned: 1 games"]').click();await wait();
@@ -292,8 +290,8 @@ app.whenReady().then(async()=>{
     for(let n=0;n<50&&!document.querySelector('.artwork-missing-game');n++)await pause();
 
     document.querySelector('.artwork-missing-game').click();
-    for(let n=0;n<50;n++){await pause();const b=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Choose image file'));if(b&&!b.disabled)break;}
-    [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Choose image file')).click();
+    for(let n=0;n<50;n++){await pause();const b=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Upload artwork file'));if(b&&!b.disabled)break;}
+    [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Upload artwork file')).click();
     for(let n=0;n<50;n++){await pause();if(!(await window.gameAtlas.getArtworkStatus()).missing.length)break;}
     if((await window.gameAtlas.getArtworkStatus()).missing.length)throw Error('Local thumbnail selection failed');
    })()`);
@@ -361,7 +359,18 @@ app.whenReady().then(async()=>{
      await pause();
      const pdfButtons=[...document.querySelectorAll('button')].filter(b=>b.textContent.includes('PDF'));
      if(!pdfButtons.some(b=>b.textContent.includes('Physical Collection'))||!pdfButtons.some(b=>b.textContent.includes('Entire Library')))throw Error('PDF export buttons missing');
-     if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Find missing descriptions')))throw Error('Description scan button missing');
+     const descriptions=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Find missing descriptions'));if(!descriptions)throw Error('Description review button missing');
+     descriptions.click();
+     for(let n=0;n<30&&!document.querySelector('.description-settings');n++)await pause();
+     if(document.querySelector('.settings-editor')||!document.querySelector('.description-missing-game')?.textContent.includes('Test game'))throw Error('Missing-description list failed');
+     document.querySelector('.description-missing-game').click();await pause();
+     const textarea=document.querySelector('#missing-game-description');if(!textarea)throw Error('Manual description editor missing');
+     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(textarea,'A manually added description.');textarea.dispatchEvent(new Event('input',{bubbles:true}));
+     [...document.querySelectorAll('button')].find(b=>b.textContent==='Save description').click();
+     for(let n=0;n<30&&document.querySelector('.description-missing-game');n++)await pause();
+     if(document.querySelector('.description-missing-game'))throw Error('Saved description remained missing');
+     document.querySelector('[data-slot="dialog-close"]').click();await pause();
+     document.querySelector('[aria-label="Settings"]').click();await pause();
      const result=await window.gameAtlas.checkUpdates();
      if(result.state!=='available')throw Error('Release review not returned');
      for(let n=0;n<30&&!document.querySelector('.update-review');n++)await pause();
@@ -428,7 +437,7 @@ app.whenReady().then(async()=>{
     const edit=document.querySelector('.game-page-edit-top');if(!edit)throw Error('Edit button missing');
     edit.click();await new Promise(r=>setTimeout(r,150));
     if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Upload file to replace artwork')))throw Error('Upload artwork button missing');
-    const description=document.querySelector('#edit-game-description');if(!description||description.value!=='A concise test game description.')throw Error('Description editor missing');
+    const description=document.querySelector('#edit-game-description');if(!description||description.value!=='A manually added description.')throw Error('Description editor missing');
    })()`);
    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','game-editor.png'),(await window.webContents.capturePage()).toPNG());
    await window.webContents.executeJavaScript(`(async()=>{

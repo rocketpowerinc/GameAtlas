@@ -31,7 +31,7 @@ export function ArtworkSettings({onClose,onReload}:{onClose:()=>void;onReload:()
  </>:<>
   <button className="quiet" disabled={busy} onClick={()=>{setSelected(null);setPreview([]);setError('');}}>← Back to missing games</button>
   <h2>{selected.title}</h2><p className="muted">{selected.platform}</p>
-  <div className="artwork-local"><button className="quiet" disabled={busy} onClick={()=>void perform(async()=>{if(await window.gameAtlas.chooseArtworkFile(selected.id))await finish();})}>Choose image file</button><span className="muted">Use a picture saved on your PC.</span></div>
+  <div className="artwork-local"><button className="quiet" disabled={busy} onClick={()=>void perform(async()=>{if(await window.gameAtlas.chooseArtworkFile(selected.id))await finish();})}>Upload artwork file</button><span className="muted">Use a picture saved on your PC.</span></div>
   <label htmlFor="artwork-query">Search by game title or paste a game page link</label>
   <div className="artwork-search"><input maxLength={500} id="artwork-query" value={query} onChange={e=>setQuery(e.target.value)} disabled={busy} onKeyDown={e=>{if(e.key==='Enter'&&query.trim().length>=2)void perform(()=>search(query));}}/><button className="primary" disabled={busy||query.trim().length<2} onClick={()=>void perform(()=>search(query))}>Search</button></div>
   {working&&<p role="status">Looking up artwork…</p>}

@@ -4,7 +4,7 @@ import {useEffect,useState} from 'react';
 import {FolderOpen,Download,Upload,FileDown} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import type {Preferences} from '@/desktop/preferences';
-export function DesktopSettings({open,onOpenChange,onReload,onArtwork}:{onArtwork:()=>void;open:boolean;onOpenChange:(v:boolean)=>void;onReload:()=>Promise<void>}){
+export function DesktopSettings({open,onOpenChange,onReload,onArtwork,onDescriptions}:{onArtwork:()=>void;onDescriptions:()=>void;open:boolean;onOpenChange:(v:boolean)=>void;onReload:()=>Promise<void>}){
  const [update,setUpdate]=useState<UpdateStatus|null>(null);
  const updating=!!update&&['checking','downloading','installing'].includes(update.state);
  useEffect(()=>{void window.gameAtlas.getUpdateStatus().then(setUpdate);return window.gameAtlas.onUpdateStatus(setUpdate);},[]);
@@ -34,10 +34,6 @@ export function DesktopSettings({open,onOpenChange,onReload,onArtwork}:{onArtwor
  async function exportPdf(scope:'all'|'physical'){
   setBusy(true);setError('');setMessage(scope==='physical'?'Building your physical collection PDF…':'Building your entire library PDF…');
   try{const result=await window.gameAtlas.exportCollectionPdf(scope);setMessage(result||'PDF export canceled.');}catch(e){setError(String(e));setMessage('');}finally{setBusy(false);}
- }
- async function findDescriptions(){
-  setBusy(true);setError('');setMessage('Finding descriptions for games that are missing one…');
-  try{setMessage(await window.gameAtlas.findMissingDescriptions());await onReload();}catch(e){setError(String(e));setMessage('');}finally{setBusy(false);}
  }
  return <Dialog open={open||wizard||(!preferences&&!!error)} onOpenChange={v=>{if(!wizard&&!busy&&!updating)onOpenChange(v);}}>
   <DialogContent showCloseButton={!wizard} className={wizard?'editor settings-editor setup-wizard':'editor settings-editor'}>
@@ -71,7 +67,7 @@ export function DesktopSettings({open,onOpenChange,onReload,onArtwork}:{onArtwor
     </div>}
     {!wizard&&<div className="settings-section"><h2>Create Collection PDF</h2><p className="muted">Create a polished, printable catalog with cover art and the details that matter most.</p><div className="backup-buttons"><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf('physical')}><FileDown size={18}/> Export Physical Collection PDF</button><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf('all')}><FileDown size={18}/> Export Entire Library PDF</button></div></div>}
     {!wizard&&<div className="settings-section"><h2>Game artwork</h2><p className="muted">Find missing thumbnails and choose images in a dedicated window.</p><button className="quiet" disabled={busy||updating} onClick={onArtwork}>Check for missing artwork</button></div>}
-    {!wizard&&<div className="settings-section"><h2>Game descriptions</h2><p className="muted">Look up descriptions only for games where the description is currently blank. Existing descriptions stay unchanged.</p><button className="quiet" disabled={busy||updating} onClick={()=>void findDescriptions()}>Find missing descriptions</button></div>}
+    {!wizard&&<div className="settings-section"><h2>Game descriptions</h2><p className="muted">Review every game without a description and add the right text yourself.</p><button className="quiet" disabled={busy||updating} onClick={onDescriptions}>Find missing descriptions</button></div>}
     {!wizard&&<div className="settings-section">
      <h2>Application updates</h2>
      <p className="muted">Check for a newer version and review what’s changed. You choose when to install.</p>

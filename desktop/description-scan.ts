@@ -1,38 +1,26 @@
-import {normalizeTitle,type LookupCandidate,type LookupDetails} from '../lib/game-lookup';
 import type {LibraryStore} from './store';
 
-type Services={
- search:(title:string)=>Promise<{candidates:LookupCandidate[]}>;
- details:(candidate:LookupCandidate)=>Promise<LookupDetails>;
-};
-export type DescriptionScanResult={total:number;processed:number;added:number;missing:number};
+export const missingDescriptionText='No description has been added for this game yet.';
+export type MissingDescription={id:string;title:string;platform:string};
 
 export class DescriptionScan{
- constructor(private store:LibraryStore,private services:Services){}
- async run():Promise<DescriptionScanResult>{
-  const library=this.store.read();
-  const titleField=library.fields.find(field=>field.name.toLowerCase()==='title')?.id||'Title';
-  const targets=library.games.filter(game=>!game.lookup?.description?.trim());
-  let processed=0,added=0;
-  for(const target of targets){
-   try{
-    const title=String(target.values[titleField]??'').trim();
-    if(!title)continue;
-    const result=await this.services.search(title);
-    const exact=result.candidates.filter(candidate=>normalizeTitle(candidate.name)===normalizeTitle(title));
-    if(exact.length!==1)continue;
-    const details=await this.services.details(exact[0]);
-    const description=details.description?.trim();
-    if(!description)continue;
-    const game=library.games.find(item=>item.id===target.id);
-    if(!game||game.lookup?.description?.trim())continue;
-    const sources=[...(game.lookup?.sources??[]),...details.sources].filter((source,index,all)=>all.findIndex(item=>item.url===source.url)===index);
-    game.lookup={...game.lookup,sources,description};
-    added++;
-   }catch{}
-   finally{processed++;}
-  }
-  if(added)this.store.save(library,false);
-  return {total:targets.length,processed,added,missing:targets.length-added};
+ constructor(private store:LibraryStore){}
+ missing():MissingDescription[]{
+  return this.store.read().games.filter(game=>{
+   const description=game.lookup?.description?.trim()||'';
+   return !description||description===missingDescriptionText;
+  }).map(game=>({
+   id:game.id,
+   title:String(game.values.Title||'Untitled game'),
+   platform:Array.isArray(game.values.Platform)?game.values.Platform.join(', '):String(game.values.Platform||'Platform not set')
+  })).sort((a,b)=>a.title.localeCompare(b.title));
+ }
+ apply(id:string,description:string){
+  const clean=description.trim();
+  if(!clean||clean===missingDescriptionText)throw Error('Enter a description for this game.');
+  const library=this.store.read(),game=library.games.find(item=>item.id===id);
+  if(!game)throw Error('Game no longer exists.');
+  game.lookup={...game.lookup,sources:game.lookup?.sources||[],description:clean};
+  this.store.save(library,false);
  }
 }

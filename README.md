@@ -83,6 +83,6 @@ Use **Settings > Create Collection PDF** to export either the games you own phys
 
 Open any existing game and choose **Upload file to replace artwork** to use your own PNG, JPG, WebP, GIF, or AVIF image. GameAtlas stores a safe local copy with the library, so it is included in complete backups and restores.
 
-Game descriptions can be edited directly in the game editor. Use **Settings > Find missing descriptions** to look up only blank descriptions; existing descriptions, game properties, and artwork remain unchanged.
+Game descriptions can be edited directly in the game editor. Use **Settings > Find missing descriptions** to review games that show the missing-description message and add the correct text manually. The library uses a focused tile layout with release dates shown directly on each game card.
 
 Opening a game first shows a clean, read-only game page with larger artwork, its description, and pertinent information as compact badges. Empty properties stay hidden. A single source is not repeated; when a game has multiple distinct sources, compact labeled links such as IGN and Steam appear near the top. Personal notes appear in a full-width Notes box at the bottom. Use the compact **Edit** button beside the close button when you want to change information or artwork, and **Back to game page** to leave the editor without keeping unsaved property changes.

@@ -420,13 +420,15 @@ h2 {
   background: var(--primary);
 }
 .filter-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(220px,1.6fr) repeat(5,minmax(130px,1fr));
   align-items: center;
   gap: 10px;
   margin: 26px 0 20px;
+  overflow-x: auto;
+  padding-bottom: 3px;
 }
 .filter-row .toolbar {
-  flex: 1;
   margin: 0;
   min-width: 220px;
   height: 46px;
@@ -530,6 +532,7 @@ h2 {
   margin: 0;
   overflow-wrap: anywhere;
 }
+.game-info .game-release-date {margin-top:7px;color:var(--muted-foreground);font-size:12px;}
 .card-bottom {
   margin-top: auto;
   padding-top: 20px;
@@ -1051,15 +1054,6 @@ footer {
   .atlas {
     padding: 0 28px;
   }
-  .filter-row {
-    flex-wrap: wrap;
-  }
-  .filter-row .toolbar {
-    flex-basis: 100%;
-  }
-  .filter-row > .picker {
-    flex: 1;
-  }
   .library-tabs {
     gap: 18px !important;
   }
@@ -1098,28 +1092,13 @@ footer {
     display: none;
   }
   .filter-row > .picker {
-    flex: 1 1 30%;
-    min-width: 0;
+    min-width: 130px;
     font-size: 12px !important;
     padding: 10px 7px !important;
   }
-  .result-bar {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
+  .result-bar {align-items:center;}
   .result-bar > p {
     align-self: center;
-  }
-  .view-controls {
-    gap: 5px;
-    margin-left: auto;
-  }
-  .view-controls > .picker {
-    max-width: 135px;
-  }
-  .view-controls .icon-button {
-    width: 38px;
-    min-height: 44px;
   }
   .game-art {
     height: 155px;
@@ -1277,6 +1256,14 @@ footer .brand-name{font-size:inherit}
 .artwork-search input{flex:1;min-width:0;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--foreground)}
 .artwork-local{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:16px 0 24px}
 .artwork-window .artwork-missing-list{max-height:340px}
+.description-settings{max-width:760px!important}
+.description-missing-list{max-height:430px;overflow:auto;display:grid;gap:9px;padding-right:4px}
+.description-missing-game{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center!important;gap:4px 18px!important;text-align:left;width:100%;padding:14px 16px!important}
+.description-missing-game span{display:flex;align-items:center;gap:9px;min-width:0}
+.description-missing-game small{grid-column:1;color:var(--muted-foreground)}
+.description-missing-game b{grid-column:2;grid-row:1 / span 2;color:var(--primary);font-size:13px;white-space:nowrap}
+.description-back{margin-bottom:4px}
+.description-complete{min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--border);border-radius:10px}
 .artwork-window .artwork-preview img{width:180px;height:210px}
 .artwork-success{color:var(--primary);margin:16px 0}
 

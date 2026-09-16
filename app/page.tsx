@@ -2,6 +2,7 @@ import {esrbOptions,compareEsrb} from '@/lib/esrb';
 import {saveTheme, type Theme} from '@/lib/theme';
 import {CollectionDashboard} from '@/components/collection-dashboard';
 import {ArtworkSettings} from '@/components/artwork-settings';
+import {DescriptionSettings} from '@/components/description-settings';
 import {BrandMark,BrandName} from '@/components/brand';
 import {DesktopSettings} from '@/components/desktop-settings';
 'use client';
@@ -20,8 +21,6 @@ import {
   Plus,
   Search,
   Settings,
-  LayoutGrid,
-  List,
   Download,
   ImageUp,
   RefreshCw,
@@ -59,14 +58,6 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from '@/components/ui/table';
 import { Empty, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -153,7 +144,6 @@ export default function Home() {
     [status, setStatus] = useState('All statuses'),
     [esrb, setEsrb] = useState('All ESRB ratings'),
     [sort, setSort] = useState('Title A–Z'),
-    [layout, setLayout] = useState('grid'),
     [limit, setLimit] = useState(48),
     [draft, setDraft] = useState<Game | null>(null),
     [editingGame,setEditingGame] = useState(false),
@@ -161,6 +151,7 @@ export default function Home() {
     [dashboard,setDashboard] = useState(false),
     [dashboardFilter,setDashboardFilter] = useState<{label:string;ids:string[]}|null>(null),
     [artworkOpen,setArtworkOpen] = useState(false),
+    [descriptionsOpen,setDescriptionsOpen] = useState(false),
     [confirm, setConfirm] = useState<{
       title: string;
       body: string;
@@ -402,6 +393,7 @@ export default function Home() {
     void reload();
 
   }, []);
+  useEffect(()=>{const refresh=()=>void reload();window.addEventListener('library-updated',refresh);return()=>window.removeEventListener('library-updated',refresh);},[]);
   useEffect(() => {
     setLimit(48);
   }, [query, platform, genre, status, esrb, view, sort]);
@@ -673,6 +665,20 @@ export default function Home() {
             options={['All statuses', ...options('Status')]}
             label="Filter status"
           />
+          <Pick value={esrb} onChange={setEsrb} options={['All ESRB ratings',...esrbOptions]} label="Filter by ESRB rating"/>
+          <Pick
+            value={sort}
+            onChange={setSort}
+            options={[
+              'Title A–Z',
+              'Title Z–A',
+              'Highest score',
+              'ESRB: Everyone first',
+              'ESRB: Mature first',
+              'Newest release',
+            ]}
+            label="Sort games"
+          />
         </div>
         <div className="result-bar">
           <p>
@@ -694,45 +700,6 @@ export default function Home() {
               </button>
             )}
           </p>
-          <div className="view-controls">
-            <Pick value={esrb} onChange={setEsrb} options={['All ESRB ratings',...esrbOptions]} label="Filter by ESRB rating"/>
-            <Pick
-              value={sort}
-              onChange={setSort}
-              options={[
-                'Title A–Z',
-                'Title Z–A',
-                'Highest score',
-                'ESRB: Everyone first',
-                'ESRB: Mature first',
-                'Newest release',
-              ]}
-              label="Sort games"
-            />
-            <button
-              className={`quiet icon-button ${layout === 'grid' ? 'selected' : ''}`}
-              aria-label="Grid view"
-              aria-pressed={layout === 'grid'}
-              onClick={() => setLayout('grid')}
-            >
-              <LayoutGrid size={19} />
-            </button>
-            <button
-              className={`quiet icon-button ${layout === 'table' ? 'selected' : ''}`}
-              aria-label="Table view"
-              aria-pressed={layout === 'table'}
-              onClick={() => setLayout('table')}
-            >
-              <List size={20} />
-            </button>
-            <button
-              className="quiet icon-button"
-              aria-label="Refresh library"
-              onClick={() => void reload()}
-            >
-              <RefreshCw size={17} />
-            </button>
-          </div>
         </div>
         {!data ? (
           <div className="game-grid">
@@ -756,7 +723,7 @@ export default function Home() {
               <Plus size={18} /> Add game
             </button>
           </Empty>
-        ) : layout === 'grid' ? (
+        ) : (
           <div className="game-grid">
             {filtered.slice(0, limit).map((g) => (
               <article className="game-card" key={g.id}>
@@ -778,6 +745,7 @@ export default function Home() {
                   <div className="game-info">
                     <h2>{title(g, fields).replace(/^\*\*|\*\*$/g, '')}</h2>
                     <p>{display(g.values.Studio) || 'Studio not set'}</p>
+                    {display(g.values['Release Date'])&&<p className="game-release-date">Released {display(g.values['Release Date'])}</p>}
                     {contains(g, 'Status', 'Currently Playing') && (
                       <span className="playing">
                         <span />
@@ -805,52 +773,6 @@ export default function Home() {
               </article>
             ))}
           </div>
-        ) : (
-          <Table className="library-table">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Game</TableHead>
-                {fields
-                  .filter((f) => f.id !== 'Title')
-                  .map((f) => (
-                    <TableHead key={f.id}>{f.name}</TableHead>
-                  ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.slice(0, limit).map((g) => (
-                <TableRow key={g.id}>
-                  <TableCell>
-                    <button
-                      className="table-title"
-                      onClick={() => openGame(g)}
-                    >
-                      <GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="list" />
-                      <span>{title(g, fields)}</span>
-                    </button>
-                  </TableCell>
-                  {fields
-                    .filter((f) => f.id !== 'Title')
-                    .map((f) => (
-                      <TableCell key={f.id}>
-                        {f.type === 'url' && safeLink(g.values[f.id]) ? (
-                          <a
-                            className="table-link"
-                            href={safeLink(g.values[f.id])}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Open link <ArrowUpRight size={15} />
-                          </a>
-                        ) : (
-                          display(g.values[f.id]) || '—'
-                        )}
-                      </TableCell>
-                    ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
         )}
         {filtered.length > limit && (
           <div className="load-more">
@@ -1250,8 +1172,9 @@ export default function Home() {
           </>}
         </DialogContent>
       </Dialog>
-      {!artworkOpen&&<DesktopSettings open={settings} onOpenChange={setSettings} onReload={reload} onArtwork={()=>{setSettings(false);setArtworkOpen(true);}}/>}
+      {!artworkOpen&&!descriptionsOpen&&<DesktopSettings open={settings} onOpenChange={setSettings} onReload={reload} onArtwork={()=>{setSettings(false);setArtworkOpen(true);}} onDescriptions={()=>{setSettings(false);setDescriptionsOpen(true);}}/>}
       {artworkOpen&&<ArtworkSettings onClose={()=>setArtworkOpen(false)} onReload={reload}/>}
+      {descriptionsOpen&&<DescriptionSettings onClose={()=>setDescriptionsOpen(false)} onReload={reload}/>}
       <AlertDialog
         open={!!confirm}
         onOpenChange={(o) => !o && !busy && setConfirm(null)}
