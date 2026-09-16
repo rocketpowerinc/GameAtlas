@@ -1,6 +1,6 @@
 {
   "name": "gameatlas",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -10,9 +10,9 @@
     "build": "vite build && node scripts/build-desktop.mjs",
     "start": "electron .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test-game-lookup.mjs && node scripts/test-store.mjs && node scripts/test-backup.mjs && node scripts/test-preferences.mjs && node scripts/test-updates.mjs && node scripts/test-artwork-scan.mjs && node scripts/test-description-scan.mjs && node scripts/test-dashboard.mjs && node scripts/test-esrb.mjs && node scripts/test-pdf-export.mjs",
+    "test": "node scripts/test-game-lookup.mjs && node scripts/test-store.mjs && node scripts/test-backup.mjs && node scripts/test-preferences.mjs && node scripts/test-updates.mjs && node scripts/test-portable.mjs && node scripts/test-artwork-scan.mjs && node scripts/test-description-scan.mjs && node scripts/test-dashboard.mjs && node scripts/test-esrb.mjs && node scripts/test-pdf-export.mjs",
     "test:desktop": "electron . --smoke-test",
-    "dist": "npm run build && electron-builder --win nsis --x64",
+    "dist": "npm run build && electron-builder --win --x64",
     "build:branding": "electron scripts/build-branding.cjs"
   },
   "dependencies": {},
@@ -56,11 +56,15 @@
       "package.json"
     ],
     "win": {
-      "target": "nsis",
+      "target": [
+        "nsis",
+        "portable"
+      ],
       "icon": "public/icon.ico",
       "signExecutable": false
     },
     "nsis": {
+      "artifactName": "GameAtlas.Setup.${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
@@ -68,6 +72,10 @@
       "installerIcon": "public/icon.ico",
       "uninstallerIcon": "public/icon.ico",
       "installerHeaderIcon": "public/icon.ico"
+    },
+    "portable": {
+      "artifactName": "GameAtlas.Portable.${version}.${ext}",
+      "requestExecutionLevel": "user"
     },
     "asar": true
   }

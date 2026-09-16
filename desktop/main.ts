@@ -12,10 +12,13 @@ import { DesktopUpdater } from './updater';
 import { writeBackup, readBackup, missingArtwork } from './backup';
 import { searchGames, gameDetails } from '../lib/game-lookup-server';
 import {exportCollectionPdf,selectPdfLibrary,type PdfScope} from './pdf-export';
+import {portableUserData} from './portable';
 protocol.registerSchemesAsPrivileged([{scheme:'atlas',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true}}]);
 const smoke=process.argv.includes('--smoke-test');
+const portableData=portableUserData();
+if(portableData)app.setPath('userData',portableData);
 if(smoke)app.setPath('userData',join(app.getPath('temp'),'gameatlas-smoke-'+process.pid));
-const primaryInstance=app.requestSingleInstanceLock();
+const primaryInstance=smoke||app.requestSingleInstanceLock();
 if(!primaryInstance)app.quit();
 let window:BrowserWindow; let store:LibraryStore;let preferences:PreferencesStore;
 let backupBusy=false;let restoring=false;
@@ -341,10 +344,10 @@ app.whenReady().then(async()=>{
    const before=readdirSync(store.backupDir).filter(n=>n.startsWith('before-update-')).length;
    let launched=false,finished=false,downloads=0;
    const simulated=new DesktopUpdater(store,()=>{},{
-    latest:async()=>({version:'99.0.0',url:'',size:1,digest:''}),
+    latest:async()=>({version:'99.0.0',url:'',size:1,digest:'',flavor:'setup' as const}),
     download:async()=>{downloads++;return 'test-only-not-executed.exe';},
     launch:async()=>{if(readdirSync(store.backupDir).filter(n=>n.startsWith('before-update-')).length<=before)throw Error('Update safety backup missing');launched=true;},
-    finish:()=>{finished=true;},packaged:()=>true
+    finish:()=>{finished=true;},packaged:()=>true,portableFile:()=>''
    });
    try{await simulated.install('99.0.0');throw Error('Install allowed without review');}catch(e){if(!(e instanceof Error)||!e.message.includes('review'))throw e;}
    if((await simulated.check()).state!=='available'||downloads||launched||finished)throw Error('Check installed without consent');
@@ -359,7 +362,7 @@ app.whenReady().then(async()=>{
     if(url.includes('list=search'))return Response.json({query:{search:[{title:'Test game',snippet:'Test game is a video game.',pageid:1}]}});
     if(url.includes('storesearch'))return Response.json({items:[]});
     if(url.includes('action=parse'))return Response.json({parse:{title:'Test game',text:{'*':'<table class="ib-video-game"></table><p>Test description found online with enough useful detail for the player to review before saving it.</p>'}}});
-    networkCalls++;return Response.json({tag_name:'v99.0.0',draft:false,prerelease:false,body:'Clearer artwork review and faster library browsing.',assets:[{id:42,name:'GameAtlas.Setup.99.0.0.exe',state:'uploaded',size:1,digest:'sha256:'+'a'.repeat(64)}]});
+    networkCalls++;return Response.json({tag_name:'v99.0.0',draft:false,prerelease:false,body:'Clearer artwork review and faster library browsing.',assets:[{id:42,name:'GameAtlas.Setup.99.0.0.exe',state:'uploaded',size:1,digest:'sha256:'+'a'.repeat(64)},{id:43,name:'GameAtlas.Portable.99.0.0.exe',state:'uploaded',size:1,digest:'sha256:'+'a'.repeat(64)}]});
    }) as typeof fetch;
    try{
     await window.webContents.executeJavaScript(`(async()=>{

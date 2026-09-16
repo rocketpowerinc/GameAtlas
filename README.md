@@ -5,7 +5,9 @@
 GameAtlas is an offline-first Windows game collection app with cards, list view, score colours, filters, wishlists, descriptions, and online game lookup.
 
 ## Install and first run
-Run the latest GameAtlas Setup executable from https://github.com/rocketpowerinc/GameAtlas/releases. Node.js is not required. The installer is unsigned, so Windows may show an unknown-publisher notice.
+Each release provides two Windows downloads. Run `GameAtlas.Setup.VERSION.exe` for the normal installed edition, or place `GameAtlas.Portable.VERSION.exe` in a writable folder and run it without installing. Node.js is not required. Both executables are unsigned, so Windows may show an unknown-publisher notice.
+
+The installed edition keeps its collection in `%APPDATA%/GameAtlas`, as before. The portable edition creates a `GameAtlas Data` folder beside its executable and keeps its database, artwork, settings, backups, and first-run state there. Keep the portable executable and that data folder together when moving it to another computer or drive. Replacing only the portable executable with a newer version preserves the adjacent data folder.
 
 A fresh installation contains **zero games**. The first-run wizard lets you:
 1. Start an empty library with the standard game fields, or import a complete .gameatlas backup or legacy JSON export.
@@ -48,7 +50,7 @@ Restore validates the database and image checksums, creates a safety copy, and r
 Machine-specific settings and nested backup histories are not included in a library backup. Choose the backup location/schedule on the new PC during setup.
 
 ## Storage
-The live database and image cache normally live in %APPDATA%/GameAtlas, separately from this repository and the installer. Keep the live database outside cloud-sync folders. Installer upgrades preserve it; uninstall does not deliberately remove it.
+The installed edition's live database and image cache live in `%APPDATA%/GameAtlas`, separately from this repository and the installer. The portable edition uses its adjacent `GameAtlas Data` folder. Installer upgrades preserve installed data; uninstall does not deliberately remove it.
 
 Internet is required only for lookup, uncached artwork, opening external links, and checking for application updates.
 
@@ -63,7 +65,7 @@ Use Node.js 22.13 or newer on Windows:
 - npm test
 - npm run test:desktop
 - npm start
-- npm run dist
+- npm run dist (builds both the installer and portable executable)
 
 Generated outputs are ignored by Git. Installers are in release. Test fixtures contain generic sample games and are not packaged.
 
@@ -71,9 +73,9 @@ The renderer uses a sandbox, context isolation, and a limited validated preload 
 The repository contains the Windows application. React, HTML, CSS, and Vite build its embedded Electron interface; they are required desktop components. There is no hosted application, deployment configuration, or web server in this source tree. Backups placed in BACKUPS can be committed to this public repository and are publicly downloadable. New or changed backups must be committed and pushed explicitly; the app does not synchronize backups with GitHub.
 
 ## Application updates
-Settings > Check for updates uses the public GitHub latest-release API. A newer stable Windows release is shown with its GitHub release notes. Choose Install update to download and verify the installer against its GitHub SHA-256 digest and size, then install after a complete safety backup. Not now postpones it without downloading or installing. GameAtlas closes and the NSIS installer upgrades and relaunches it. No GitHub account or token is needed.
+Settings > Check for updates uses the public GitHub latest-release API. A newer stable Windows release is shown with its GitHub release notes. Choose Install update to download and verify the matching installer or portable executable against its GitHub SHA-256 digest and size, then update after a complete safety backup. Not now postpones it without downloading or installing. GameAtlas closes, updates the same edition, and relaunches it. No GitHub account or token is needed.
 
-Install version 1.4.2 or newer to review release notes and confirm before updating. Versions 1.3 through 1.4.1 still install immediately when their old Check for updates button is pressed. Older versions do not have the button. The update preserves the library and settings. No background update checks run without pressing the button. Release installers must have a matching GameAtlas.Setup.VERSION.exe name and GitHub asset digest. Missing assets, rate limits, offline access, failed verification, and installer launch errors are shown in Settings.
+Install version 1.4.2 or newer to review release notes and confirm before updating. Versions 1.3 through 1.4.1 still install immediately when their old Check for updates button is pressed. Older versions do not have the button. The update preserves the library and settings. No background update checks run without pressing the button. Releases must contain matching `GameAtlas.Setup.VERSION.exe` and `GameAtlas.Portable.VERSION.exe` files with GitHub asset digests. Missing assets, rate limits, offline access, failed verification, and launch errors are shown in Settings.
 
 Use the sun/moon button beside Settings to switch between light and dark themes. Your choice is remembered on this computer between launches.
 
