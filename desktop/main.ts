@@ -245,6 +245,8 @@ app.whenReady().then(async()=>{
     window.dispatchEvent(new Event('library-updated'));await wait();
     if(!document.querySelector('.game-card')||!document.querySelector('.game-release-date')?.textContent.includes('2024-01-02'))throw Error('Game card or release date missing');
     if(document.querySelector('[aria-label="Refresh library"]')||document.querySelector('[aria-label="Grid view"]')||document.querySelector('[aria-label="Table view"]')||document.querySelector('.library-table'))throw Error('Removed library controls remain');
+    const search=document.querySelector('.library-search').getBoundingClientRect(),filters=[...document.querySelectorAll('.filter-row .picker')].map(element=>element.getBoundingClientRect());
+    if(filters.length!==5||filters.some(filter=>filter.top<search.bottom)||Math.max(...filters.map(filter=>filter.width))-Math.min(...filters.map(filter=>filter.width))>2)throw Error('Search and filter layout is uneven');
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Dashboard').click();await wait();
     if(!document.querySelector('.collection-dashboard')||!document.querySelector('[aria-label="Owned: 1 games"]')||!document.querySelector('[aria-label="Unplayed: 1 games"]'))throw Error('Dashboard totals are wrong');
     document.querySelector('[aria-label="Owned: 1 games"]').click();await wait();
@@ -439,17 +441,21 @@ app.whenReady().then(async()=>{
     if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Upload file to replace artwork')))throw Error('Upload artwork button missing');
     const description=document.querySelector('#edit-game-description');if(!description||description.value!=='A manually added description.')throw Error('Description editor missing');
     const title=document.querySelector('#edit-Title'),artwork=document.querySelector('.editor-artwork');if(!title||!artwork||!(title.compareDocumentPosition(artwork)&Node.DOCUMENT_POSITION_FOLLOWING)||!(artwork.compareDocumentPosition(description)&Node.DOCUMENT_POSITION_FOLLOWING))throw Error('Editor field order is wrong');
+    if(document.querySelector('#edit-source-ign')?.value!=='https://www.ign.com/games/test-game'||document.querySelector('#edit-source-steam')?.value!=='https://store.steampowered.com/app/2'||!document.querySelector('#edit-source-wikipedia'))throw Error('Source URL editors missing');
    })()`);
    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','game-editor.png'),(await window.webContents.capturePage()).toPNG());
    await window.webContents.executeJavaScript(`(async()=>{
     const description=document.querySelector('#edit-game-description');if(!description)throw Error('Description editor missing');
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(description,'An edited game description.');description.dispatchEvent(new Event('input',{bubbles:true}));description.dispatchEvent(new Event('change',{bubbles:true}));
+    const ign=document.querySelector('#edit-source-ign'),wiki=document.querySelector('#edit-source-wikipedia'),input=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;
+    input.call(ign,'');ign.dispatchEvent(new Event('input',{bubbles:true}));input.call(wiki,'https://en.wikipedia.org/wiki/Test_Game');wiki.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>setTimeout(r,100));
     const rating=document.querySelector('#edit-ESRB');if(!rating||rating.value!=='Unknown')throw Error('ESRB migration/editor failed');
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(rating,'T — Teen');rating.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,100));
     [...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Save game').click();await new Promise(r=>setTimeout(r,300));
     if(!document.querySelector('.esrb-badge')?.textContent.includes('T — Teen'))throw Error('ESRB save failed');
     document.querySelector('.game-card-main').click();await new Promise(r=>setTimeout(r,150));
     if(!document.querySelector('[data-slot="dialog-description"]')?.textContent.includes('An edited game description.'))throw Error('Edited description was not saved');
+    if(document.querySelector('.game-page-source-links')?.textContent.includes('IGN')||!document.querySelector('.game-page-source-links')?.textContent.includes('Steam')||!document.querySelector('.game-page-source-links')?.textContent.includes('Wikipedia'))throw Error('Edited sources were not saved');
     document.querySelector('[data-slot="dialog-close"]').click();await new Promise(r=>setTimeout(r,150));
     document.querySelector('[aria-label="Filter by ESRB rating"]').click();await new Promise(r=>setTimeout(r,150));
     [...document.querySelectorAll('[role="option"]')].find(o=>o.textContent==='E — Everyone').click();await new Promise(r=>setTimeout(r,150));

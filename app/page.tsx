@@ -632,8 +632,8 @@ export default function Home() {
           </TabsList>
         </Tabs>
         {dashboardFilter&&<div className="dashboard-filter" role="status"><span>Dashboard selection: <strong>{dashboardFilter.label}</strong></span><button className="quiet" onClick={()=>setDashboardFilter(null)}>Show all games</button></div>}
-        <div className="filter-row">
-          <div className="toolbar">
+        <div className="library-controls">
+          <div className="toolbar library-search">
             <Search size={19} />
             <input
               placeholder="Find a game, studio, or genre…"
@@ -647,6 +647,7 @@ export default function Home() {
               </button>
             )}
           </div>
+          <div className="filter-row">
           <Pick
             value={platform}
             onChange={setPlatform}
@@ -679,6 +680,7 @@ export default function Home() {
             ]}
             label="Sort games"
           />
+          </div>
         </div>
         <div className="result-bar">
           <p>
@@ -956,6 +958,20 @@ export default function Home() {
                 <label htmlFor="edit-game-description">Description</label>
                 <textarea id="edit-game-description" rows={5} maxLength={6000} value={draft.lookup?.description??''} placeholder="Add a concise description of this game." onChange={event=>setDraft({...draft,lookup:{...draft.lookup,sources:draft.lookup?.sources??[],description:event.target.value}})}/>
               </div>
+              <section className="source-editor" aria-labelledby="source-editor-heading">
+                <h3 id="source-editor-heading">Sources</h3>
+                <p className="muted">Add the pages you want shown on the game page. Leave a field blank to hide that source.</p>
+                <div className="source-editor-grid">
+                  {['IGN','Steam','Wikipedia'].map(name=>{
+                    const source=draft.lookup?.sources.find(item=>item.name.toLowerCase()===name.toLowerCase());
+                    return <div className="field" key={name}><label htmlFor={`edit-source-${name.toLowerCase()}`}>{name} URL</label><input id={`edit-source-${name.toLowerCase()}`} type="url" placeholder={`https://${name==='IGN'?'www.ign.com':name==='Steam'?'store.steampowered.com':'en.wikipedia.org'}/…`} value={source?.url??''} onChange={event=>{
+                      const sources=(draft.lookup?.sources??[]).filter(item=>item.name.toLowerCase()!==name.toLowerCase());
+                      if(event.target.value)sources.push({name,url:event.target.value});
+                      setDraft({...draft,lookup:{...draft.lookup,sources}});
+                    }}/></div>;
+                  })}
+                </div>
+              </section>
               {draft.lookup && (
                 <div className="lookup-sources">
                   {safeLink(draft.lookup.coverUrl) && (
