@@ -438,6 +438,7 @@ app.whenReady().then(async()=>{
     edit.click();await new Promise(r=>setTimeout(r,150));
     if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Upload file to replace artwork')))throw Error('Upload artwork button missing');
     const description=document.querySelector('#edit-game-description');if(!description||description.value!=='A manually added description.')throw Error('Description editor missing');
+    const title=document.querySelector('#edit-Title'),artwork=document.querySelector('.editor-artwork');if(!title||!artwork||!(title.compareDocumentPosition(artwork)&Node.DOCUMENT_POSITION_FOLLOWING)||!(artwork.compareDocumentPosition(description)&Node.DOCUMENT_POSITION_FOLLOWING))throw Error('Editor field order is wrong');
    })()`);
    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','game-editor.png'),(await window.webContents.capturePage()).toPNG());
    await window.webContents.executeJavaScript(`(async()=>{

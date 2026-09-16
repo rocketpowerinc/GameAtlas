@@ -858,22 +858,34 @@ export default function Home() {
                   setDraft(null);
               }}
             >
+              {fields.some(field=>field.id==='Title')&&<div className="field game-title-editor">
+                <label htmlFor="edit-Title">Title</label>
+                <input id="edit-Title" type="text" value={display(draft.values.Title)} autoFocus onChange={event=>{
+                  if(isNewGame)setLookupQuery(event.target.value);
+                  setDraft({...draft,values:{...draft.values,Title:event.target.value}});
+                }}/>
+              </div>}
               {!isNewGame && (
-                <div className="backup-buttons">
-                  <button
-                    type="button"
-                    className="quiet"
-                    disabled={lookupBusy||busy}
-                    onClick={() => {
-                      setArtworkGameId(draft.id);
-                      setLookupQuery(title(draft, fields));
-                      setLookupRetry((n) => n + 1);
-                    }}
-                  >
-                    <Search size={16} /> Find artwork & description
-                  </button>
-                  <button type="button" className="quiet" disabled={lookupBusy||busy} onClick={()=>void replaceArtwork(draft)}><ImageUp size={16}/> Upload file to replace artwork</button>
-                </div>
+                <section className="editor-artwork" aria-labelledby="editor-artwork-heading">
+                  <div className="editor-artwork-preview"><GameThumbnail key={draft.lookup?.coverUrl} url={draft.lookup?.coverUrl} variant="card"/></div>
+                  <div><h3 id="editor-artwork-heading">Artwork</h3><p className="muted">Find a cover online or upload your own image.</p>
+                    <div className="backup-buttons">
+                      <button
+                        type="button"
+                        className="quiet"
+                        disabled={lookupBusy||busy}
+                        onClick={() => {
+                          setArtworkGameId(draft.id);
+                          setLookupQuery(title(draft, fields));
+                          setLookupRetry((n) => n + 1);
+                        }}
+                      >
+                        <Search size={16} /> Find artwork & description
+                      </button>
+                      <button type="button" className="quiet" disabled={lookupBusy||busy} onClick={()=>void replaceArtwork(draft)}><ImageUp size={16}/> Upload file to replace artwork</button>
+                    </div>
+                  </div>
+                </section>
               )}
               {(isNewGame || artworkLookup) && (
                 <section
@@ -982,7 +994,7 @@ export default function Home() {
                 </div>
               )}
               <div className="field-grid">
-                {fields.map((f) => (
+                {fields.filter(field=>field.id!=='Title').map((f) => (
                   <div
                     className={`field ${f.type === 'multi_select' || f.id === 'Notes' ? 'wide' : ''}`}
                     key={f.id}
