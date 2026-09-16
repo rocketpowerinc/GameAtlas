@@ -544,6 +544,11 @@ export default function Home() {
         ),
     [data, view, query, platform, genre, status, esrb, sort,dashboardFilter],
   );
+  const gamePageDetailFields=draft?fields.filter(field=>
+    !['Title','Studio','Release Date','Platform','Ownership','Genre','Status','Tags','Score','ESRB','Link','Notes','Wishlist Priority'].includes(field.id)&&
+    display(draft.values[field.id]).trim()!==''
+  ):[];
+  const gamePageSources=draft?[...new Map((draft.lookup?.sources??[]).filter(source=>safeLink(source.url)).map(source=>[safeLink(source.url),source])).values()]:[];
   return (
     <main className="atlas">
       <header className="masthead">
@@ -871,13 +876,16 @@ export default function Home() {
             <div className="game-page-hero">
               <div className="game-page-art"><GameThumbnail key={draft.lookup?.coverUrl} url={draft.lookup?.coverUrl} variant="card"/></div>
               <div className="game-page-intro">
-                <p className="eyebrow">{display(draft.values.Studio)||'STUDIO NOT SET'}{display(draft.values['Release Date'])?' · '+display(draft.values['Release Date']):''}</p>
+                {(display(draft.values.Studio)||display(draft.values['Release Date']))&&<p className="eyebrow">{[display(draft.values.Studio),display(draft.values['Release Date'])].filter(Boolean).join(' · ')}</p>}
                 <DialogTitle>{title(draft,fields).replace(/^\*\*|\*\*$/g,'')}</DialogTitle>
                 <DialogDescription>{draft.lookup?.description||'No description has been added for this game yet.'}</DialogDescription>
                 <div className="game-page-highlights">
                   {display(draft.values.Platform)&&<span>{display(draft.values.Platform)}</span>}
                   {display(draft.values.Ownership)&&<span>{display(draft.values.Ownership)}</span>}
+                  {display(draft.values.Genre)&&<span>{display(draft.values.Genre)}</span>}
                   {display(draft.values.Status)&&<span>{display(draft.values.Status)}</span>}
+                  {Array.isArray(draft.values.Tags)&&(draft.values.Tags as string[]).map(tag=><span key={tag}>{tag}</span>)}
+                  {display(draft.values['Wishlist Priority'])&&<span>Priority: {display(draft.values['Wishlist Priority'])}</span>}
                   {draft.values.Score!==''&&draft.values.Score!==undefined&&<span>Score {display(draft.values.Score)} / 10</span>}
                   <span>ESRB {display(draft.values.ESRB)||'Unknown'}</span>
                 </div>
@@ -885,17 +893,18 @@ export default function Home() {
                   <button className="primary" type="button" onClick={()=>setEditingGame(true)}><Pencil size={17}/> Edit game</button>
                   {safeLink(draft.values.Link)&&<a className="quiet" href={safeLink(draft.values.Link)} target="_blank" rel="noopener noreferrer">Game website <ArrowUpRight size={17}/></a>}
                 </div>
+                {gamePageSources.length>1&&<div className="game-page-source-links"><small>Sources</small>{gamePageSources.map(source=><a key={source.url} href={safeLink(source.url)} target="_blank" rel="noopener noreferrer">{source.name} <ArrowUpRight size={13}/></a>)}</div>}
               </div>
             </div>
-            <section className="game-page-properties" aria-label="Game properties">
+            {!!gamePageDetailFields.length&&<section className="game-page-properties" aria-label="Additional game properties">
               <h2>Game details</h2>
-              <dl>{fields.filter(f=>f.id!=='Title').map(f=>{
-                const value=f.id==='Release Date'&&draft.dateEnd?`${display(draft.values[f.id])||'Not set'} to ${draft.dateEnd}`:display(draft.values[f.id]);
+              <dl>{gamePageDetailFields.map(f=>{
+                const value=f.type==='checkbox'?(draft.values[f.id]===true?'Yes':'No'):display(draft.values[f.id]);
                 const link=f.type==='url'?safeLink(draft.values[f.id]):'';
-                return <div key={f.id}><dt>{f.name}</dt><dd>{link?<a href={link} target="_blank" rel="noopener noreferrer">Open link <ArrowUpRight size={14}/></a>:value||'Not set'}</dd></div>;
+                return <div key={f.id}><dt>{f.name}</dt><dd>{link?<a href={link} target="_blank" rel="noopener noreferrer">Open link <ArrowUpRight size={14}/></a>:value}</dd></div>;
               })}</dl>
-            </section>
-            {!!draft.lookup?.sources.length&&<section className="game-page-sources"><h2>Information sources</h2><div>{draft.lookup.sources.map(source=><a key={source.url} href={safeLink(source.url)} target="_blank" rel="noopener noreferrer">{source.name} <ArrowUpRight size={14}/></a>)}</div></section>}
+            </section>}
+            {display(draft.values.Notes).trim()&&<section className="game-page-notes"><h2>Notes</h2><p>{display(draft.values.Notes)}</p></section>}
           </> : <>
           {draft&&!isNewGame&&<button type="button" className="text-button game-page-back" onClick={()=>{const original=games.find(game=>game.id===draft.id);if(original)setDraft(structuredClone(original));setEditingGame(false);}}><ArrowLeft size={16}/> Back to game page</button>}
           <DialogTitle>

@@ -227,7 +227,7 @@ app.whenReady().then(async()=>{
     const setter=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;setter.call(select,'manual');select.dispatchEvent(new Event('change',{bubbles:true}));await wait();
     [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Finish setup')).click();await wait();
     if(!(await window.gameAtlas.getSettings()).setupComplete)throw Error('Setup not saved');
-    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Must Play'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5}}]});
+    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Must Play'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5,Notes:'Remember this test note.'},lookup:{description:'A concise test game description.',sources:[{name:'IGN',url:'https://www.ign.com/games/test-game'},{name:'Steam',url:'https://store.steampowered.com/app/2'}]}}]});
     if(!saved.ok)throw Error('Save failed');
     const rejected=await window.gameAtlas.request('/api/library','PUT',{...saved.data,fields:[]});
     if(rejected.ok)throw Error('Property editing was accepted');
@@ -404,6 +404,8 @@ app.whenReady().then(async()=>{
     if(!document.querySelector('[aria-label="Filter by ESRB rating"]'))throw Error('ESRB filter missing');
     document.querySelector('.game-card-main').click();await new Promise(r=>setTimeout(r,150));
     if(!document.querySelector('.game-page')||document.querySelector('#edit-ESRB'))throw Error('Game page did not open read-only');
+    if(!document.querySelector('.game-page-notes')?.textContent.includes('Remember this test note.')||[...document.querySelectorAll('.game-page-properties dd')].some(value=>value.textContent.trim()==='Not set'))throw Error('Game page notes or empty-property handling failed');
+    if(document.querySelectorAll('.game-page-source-links a').length!==2||!document.querySelector('.game-page-source-links')?.textContent.includes('IGN')||!document.querySelector('.game-page-source-links')?.textContent.includes('Steam'))throw Error('Multiple game sources are unclear');
     const edit=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Edit game');if(!edit)throw Error('Edit game button missing');
    })()`);
    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','game-page.png'),(await window.webContents.capturePage()).toPNG());
