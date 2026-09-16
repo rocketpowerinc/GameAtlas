@@ -96,3 +96,5 @@ The game editor includes URL fields for IGN, Steam, Wikipedia, and HowLongToBeat
 The retired Link, Target Price, and release-date range-end fields are removed from existing libraries during upgrade. A valid legacy Link is first copied into Sources when needed. Wishlist Priority offers Must have and Someday; the retired Want Soon choice is removed. The card shortcut uses the first available saved source in this order: IGN, YouTube, Wikipedia, then HowLongToBeat.
 
 Each game keeps at most one URL for a given source label. When an older source and the previously vetted Link use the same label, the vetted Link wins, preventing duplicate links such as two Wikipedia buttons on the game page.
+
+Available source links display as YouTube, IGN, Steam, Wikipedia, and HowLongToBeat. The editor presents the same order with one full-width URL field per row. Library upgrades decode stored HTML character entities in descriptions and remove the obsolete PriceCharting source from the combined Wolfenstein entry.

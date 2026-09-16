@@ -64,6 +64,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   display,
   dedupeSources,
+  orderedSources,
   preferredSourceUrl,
   validate,
   type Library,
@@ -553,7 +554,7 @@ export default function Home() {
     !['Title','Studio','Release Date','Platform','Ownership','Genre','Status','Tags','Score','ESRB','Link','Notes','Wishlist Priority'].includes(field.id)&&
     display(draft.values[field.id]).trim()!==''
   ):[];
-  const gamePageSources=draft?dedupeSources(draft.lookup?.sources).filter(source=>safeLink(source.url)):[];
+  const gamePageSources=draft?orderedSources(draft.lookup?.sources).filter(source=>safeLink(source.url)):[];
   return (
     <main className="atlas">
       <header className="masthead">
@@ -975,7 +976,7 @@ export default function Home() {
                 <h3 id="source-editor-heading">Sources</h3>
                 <p className="muted">Add the pages you want shown on the game page. Leave a field blank to hide that source.</p>
                 <div className="source-editor-grid">
-                  {['IGN','Steam','Wikipedia','HowLongToBeat','YouTube'].map(name=>{
+                  {['YouTube','IGN','Steam','Wikipedia','HowLongToBeat'].map(name=>{
                     const source=draft.lookup?.sources.find(item=>item.name.toLowerCase()===name.toLowerCase());
                     const placeholder=name==='IGN'?'www.ign.com':name==='Steam'?'store.steampowered.com':name==='Wikipedia'?'en.wikipedia.org':name==='HowLongToBeat'?'howlongtobeat.com/game':'www.youtube.com/watch?v=';
                     return <div className={`field ${name==='YouTube'?'source-youtube':''}`} key={name}><label htmlFor={`edit-source-${name.toLowerCase()}`}>{name} URL</label><input id={`edit-source-${name.toLowerCase()}`} type="url" placeholder={`https://${placeholder}…`} value={source?.url??''} onChange={event=>{

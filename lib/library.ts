@@ -1,3 +1,4 @@
+import {decodeHtml} from './game-lookup';
 export type Field = {id:string;name:string;type:'text'|'multi_select'|'number'|'date'|'url'|'checkbox';options:string[]};
 export type Game = {id:string;values:Record<string,string|number|boolean|string[]>;esrb?:{url:string;title:string;platforms:string[];checkedAt:string};sourceUrl?:string;lookup?:{sources:{name:string;url:string}[];scoreSource?:string;releaseNote?:string;coverUrl?:string;description?:string}};
 export type Library = {fields:Field[];games:Game[];revision:number};
@@ -9,6 +10,8 @@ export function dedupeSources(sources:NonNullable<Game['lookup']>['sources']|und
  for(const source of byName.values()){if(byUrl.has(source.url))byUrl.delete(source.url);byUrl.set(source.url,source);}
  return [...byUrl.values()];
 }
+const sourceOrder=['youtube','ign','steam','wikipedia','howlongtobeat'];
+export function orderedSources(sources:NonNullable<Game['lookup']>['sources']|undefined){return dedupeSources(sources).map((source,index)=>({source,index,rank:sourceOrder.indexOf(source.name.trim().toLowerCase())})).sort((a,b)=>(a.rank<0?sourceOrder.length:a.rank)-(b.rank<0?sourceOrder.length:b.rank)||a.index-b.index).map(item=>item.source);}
 export function preferredSourceUrl(sources:NonNullable<Game['lookup']>['sources']|undefined){
  const order=['ign','youtube','wikipedia','howlongtobeat'];
  for(const name of order){const source=dedupeSources(sources).find(item=>item.name.trim().toLowerCase()===name);if(source?.url)return source.url;}
@@ -23,6 +26,8 @@ export function withCurrentLibraryShape(library:Library):Library{
  for(const game of next.games){
   for(const id of linkIds){const url=typeof game.values[id]==='string'?game.values[id].trim():'';if(/^https?:\/\//i.test(url)){const sources=game.lookup?.sources??[];if(!sources.some(source=>source.url===url))game.lookup={...game.lookup,sources:[...sources,{name:sourceName(url),url}]};}}
   if(game.lookup)game.lookup={...game.lookup,sources:dedupeSources(game.lookup.sources)};
+  if(game.lookup?.description)game.lookup.description=decodeHtml(game.lookup.description);
+  if(String(game.values.Title||'').trim().toLowerCase()==='wolfenstein the new order and the old blood'&&game.lookup)game.lookup={...game.lookup,sources:game.lookup.sources.filter(source=>{try{return !new URL(source.url).hostname.toLowerCase().endsWith('pricecharting.com');}catch{return true;}})};
   for(const id of retired)delete game.values[id];
   if(priority){const value=game.values[priority.id];if(Array.isArray(value))game.values[priority.id]=value.filter(option=>option.trim().toLowerCase()!=='want soon');else if(typeof value==='string'&&value.trim().toLowerCase()==='want soon')game.values[priority.id]='';}
   delete (game as Game&{dateEnd?:string}).dateEnd;delete (game as Game&{dateIsTime?:number}).dateIsTime;

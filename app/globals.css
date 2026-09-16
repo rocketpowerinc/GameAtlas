@@ -842,14 +842,12 @@ footer {
 .source-editor{margin:20px 0}
 .source-editor h3{margin:0 0 5px;font-size:16px}
 .source-editor > p{margin:0 0 13px}
-.source-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.source-youtube{grid-column:1 / -1}
+.source-editor-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .youtube-searches{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px}
 .youtube-searches span{display:flex;align-items:center;gap:6px;color:var(--muted-foreground);font-size:13px;margin-right:2px}
 .youtube-searches a{display:inline-flex;align-items:center;gap:4px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--muted);color:var(--foreground);font-size:12px;font-weight:650;text-decoration:none}
 .youtube-searches a:hover{border-color:var(--primary);background:var(--accent)}
 .source-youtube > small{display:block;margin-top:7px}
-@media(max-width:760px){.source-editor-grid{grid-template-columns:1fr}}
 .game-lookup {
   padding: 16px;
   border: 1px solid #506334;
