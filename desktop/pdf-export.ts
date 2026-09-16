@@ -2,7 +2,7 @@ import {BrowserWindow} from 'electron';
 import {createHash,randomUUID} from 'node:crypto';
 import {existsSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
-import type {Game,Library} from '../lib/library';
+import {preferredSourceUrl,type Game,type Library} from '../lib/library';
 
 const escape=(value:unknown)=>String(value??'').replace(/[\u2010-\u2015]/g,'-').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const text=(game:Game,key:string)=>Array.isArray(game.values[key])?(game.values[key] as string[]).join(', '):String(game.values[key]??'').trim();
@@ -32,7 +32,7 @@ export function collectionPdfHtml(library:Library,directory:string,created=new D
  const owned=games.filter(g=>/Physical|Digital/.test(text(g,'Ownership'))).length;
  const scored=games.filter(g=>text(g,'Score')!=='').length;
  const cards=games.map((game,index)=>{
-  const image=art(game,directory),url=/^https?:\/\//.test(text(game,'Link'))?text(game,'Link'):'';
+  const image=art(game,directory),preferred=preferredSourceUrl(game.lookup?.sources),url=/^https?:\/\//.test(preferred)?preferred:'';
   return `<article class="game"><div class="number">${index+1}</div>${image?`<img src="${image}" alt="">`:'<div class="cover">GA</div>'}<section><h2>${escape(text(game,'Title')||'Untitled game')}</h2><p class="sub">${escape(text(game,'Studio')||'Studio not listed')}${text(game,'Release Date')?' - '+escape(text(game,'Release Date')):''}</p><div class="facts">${line('Platform',text(game,'Platform'))}${line('Ownership',text(game,'Ownership'))}${line('Score',text(game,'Score')?text(game,'Score')+' / 10':'')}${line('ESRB',text(game,'ESRB'))}${line('Status',text(game,'Status'))}${line('Genre',text(game,'Genre'))}${line('Tags',text(game,'Tags'))}</div>${text(game,'Notes')?`<p class="notes"><b>Notes:</b> ${escape(text(game,'Notes'))}</p>`:''}${url?`<a href="${escape(url)}">Game website</a>`:''}</section></article>`;
  }).join('');
  return `<!doctype html><html><head><meta charset="utf-8"><title>GameAtlas Collection</title><style>

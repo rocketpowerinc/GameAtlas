@@ -92,3 +92,5 @@ Opening a game first shows a clean, read-only game page with larger artwork, its
 The source editor also accepts a YouTube video URL. Ordered shortcuts help find an official trailer first, then an IGN review, then a GameRanx **Before You Buy** video. The user reviews the search result and pastes the exact video URL, which prevents an unrelated video from being attached automatically.
 
 The game editor includes URL fields for IGN, Steam, Wikipedia, and HowLongToBeat. Add the exact `howlongtobeat.com/game/...` page when one exists and it will appear with the other labeled links on the read-only game page. GameAtlas stores only the link; it does not scrape completion-time data from HowLongToBeat.
+
+The retired Link, Target Price, and release-date range-end fields are removed from existing libraries during upgrade. A valid legacy Link is first copied into Sources when needed. Wishlist Priority offers Must have and Someday; the retired Want Soon choice is removed. The card shortcut uses the first available saved source in this order: IGN, YouTube, Wikipedia, then HowLongToBeat.

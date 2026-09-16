@@ -33,7 +33,7 @@ const insights=collectionStats({fields,revision:1,games:[
  game('zero',{Title:'Zero',Ownership:['Digital'],Status:['Must Play'],Studio:'Studio Two',Score:0}),
  game('replay-tag',{Title:'Again',Ownership:['Physical'],Tags:['Replay'],Studio:'Studio Two',Score:8}),
  game('w1',{Title:'Future',Ownership:['Wish List'],'Wishlist Priority':['Must have','Someday'],'Release Date':'2026-09-13',Studio:'Studio One',Score:10}),
- game('w2',{Title:'Today',Ownership:['Wish List'],'Wishlist Priority':['Want soon'],'Release Date':'2026-09-12'}),
+ game('w2',{Title:'Today',Ownership:['Wish List'],'Release Date':'2026-09-12'}),
  game('w3',{Title:'Unknown',Ownership:['Wish List'],'Release Date':'2026-02-30'}),
  game('w4',{Title:'Partial',Ownership:['Wish List'],'Wishlist Priority':['Custom priority'],'Release Date':'2026'}),
 ]},new Date(2026,8,12,12));
@@ -46,7 +46,7 @@ assert.equal(insights.developers[0].average,8);
 assert.equal(insights.developers[1].average,6);
 assert.equal(insights.wishlistPriorities.find(p=>p.label==='Must have').games.length,1);
 assert.equal(insights.wishlistPriorities.find(p=>p.label==='Someday').games.length,1);
-assert.equal(insights.wishlistPriorities.find(p=>p.label==='Not set').games.length,1);
+assert.equal(insights.wishlistPriorities.find(p=>p.label==='Not set').games.length,2);
 assert.equal(insights.wishlistPriorities.find(p=>p.label==='Custom priority').games.length,1);
 assert.deepEqual(insights.releaseGroups.upcoming.map(g=>g.id),['w1']);
 assert.deepEqual(insights.releaseGroups.released.map(g=>g.id),['w2']);

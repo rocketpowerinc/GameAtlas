@@ -1,7 +1,26 @@
 export type Field = {id:string;name:string;type:'text'|'multi_select'|'number'|'date'|'url'|'checkbox';options:string[]};
-export type Game = {id:string;values:Record<string,string|number|boolean|string[]>;esrb?:{url:string;title:string;platforms:string[];checkedAt:string};sourceUrl?:string;dateEnd?:string;dateIsTime?:number;lookup?:{sources:{name:string;url:string}[];scoreSource?:string;releaseNote?:string;coverUrl?:string;description?:string}};
+export type Game = {id:string;values:Record<string,string|number|boolean|string[]>;esrb?:{url:string;title:string;platforms:string[];checkedAt:string};sourceUrl?:string;lookup?:{sources:{name:string;url:string}[];scoreSource?:string;releaseNote?:string;coverUrl?:string;description?:string}};
 export type Library = {fields:Field[];games:Game[];revision:number};
 export const display = (v:unknown):string => Array.isArray(v)?v.join(', '):v===undefined||v===null?'':String(v);
+export function preferredSourceUrl(sources:NonNullable<Game['lookup']>['sources']|undefined){
+ const order=['ign','youtube','wikipedia','howlongtobeat'];
+ for(const name of order){const source=sources?.find(item=>item.name.trim().toLowerCase()===name);if(source?.url)return source.url;}
+ return '';
+}
+const sourceName=(raw:string)=>{try{const host=new URL(raw).hostname.toLowerCase();if(host==='youtu.be'||host.endsWith('youtube.com'))return 'YouTube';if(host.endsWith('ign.com'))return 'IGN';if(host.endsWith('wikipedia.org'))return 'Wikipedia';if(host.endsWith('howlongtobeat.com'))return 'HowLongToBeat';if(host.endsWith('steampowered.com'))return 'Steam';}catch{}return 'Website';};
+export function withCurrentLibraryShape(library:Library):Library{
+ const next=structuredClone(library),retired=new Set(next.fields.filter(field=>['link','target price'].includes(field.name.trim().toLowerCase())||['link','target price'].includes(field.id.trim().toLowerCase())).map(field=>field.id));
+ const linkIds=next.fields.filter(field=>field.name.trim().toLowerCase()==='link'||field.id.trim().toLowerCase()==='link').map(field=>field.id);
+ const priority=next.fields.find(field=>field.name.trim().toLowerCase()==='wishlist priority'||field.id.trim().toLowerCase()==='wishlist priority');
+ next.fields=next.fields.filter(field=>!retired.has(field.id)).map(field=>field.id===priority?.id?{...field,options:field.options.filter(option=>option.trim().toLowerCase()!=='want soon')}:field);
+ for(const game of next.games){
+  for(const id of linkIds){const url=typeof game.values[id]==='string'?game.values[id].trim():'';if(/^https?:\/\//i.test(url)){const sources=game.lookup?.sources??[];if(!sources.some(source=>source.url===url))game.lookup={...game.lookup,sources:[...sources,{name:sourceName(url),url}]};}}
+  for(const id of retired)delete game.values[id];
+  if(priority){const value=game.values[priority.id];if(Array.isArray(value))game.values[priority.id]=value.filter(option=>option.trim().toLowerCase()!=='want soon');else if(typeof value==='string'&&value.trim().toLowerCase()==='want soon')game.values[priority.id]='';}
+  delete (game as Game&{dateEnd?:string}).dateEnd;delete (game as Game&{dateIsTime?:number}).dateIsTime;
+ }
+ return next;
+}
 export function validate(data:unknown): asserts data is Library {
  if(!data||typeof data!=='object')throw new Error('Invalid library.');
  const d=data as Library;

@@ -73,7 +73,11 @@ const detail = parseWikipedia(
   'https://en.wikipedia.org/wiki/A_Game',
 );
 assert.equal(detail.values.Score, 9);
-assert.equal(detail.values.Link, 'https://www.ign.com/articles/a-game-review');
+assert.equal(detail.values.Link, undefined);
+assert.equal(
+  detail.sources.find((source) => source.name === 'IGN')?.url,
+  'https://www.ign.com/articles/a-game-review',
+);
 assert.equal(detail.values.Studio, 'A Studio');
 assert.equal(detail.values['Release Date'], undefined);
 assert.equal(
@@ -115,7 +119,8 @@ try {
   const found = await searchGames('Future Game');
   assert.equal(found.exact, true);
   const upcoming = await gameDetails(found.candidates[0]);
-  assert.equal(upcoming.values.Link, 'https://store.steampowered.com/app/123/');
+  assert.equal(upcoming.values.Link, undefined);
+  assert.equal(upcoming.sources[0].url, 'https://store.steampowered.com/app/123/');
   assert.equal(upcoming.values.Score, undefined);
   assert.equal(upcoming.values['Release Date'], undefined);
   assert.match(upcoming.releaseNote, /Upcoming/);
@@ -135,7 +140,7 @@ if (process.argv.includes('--live')) {
     const found = await searchGames(query);
     assert.ok(found.candidates.length, `No matches for ${query}`);
     const result = await gameDetails(found.candidates[0]);
-    assert.ok(result.values.Title && result.values.Link);
+    assert.ok(result.values.Title && result.sources.length);
     console.log(
       JSON.stringify({
         query,
@@ -150,7 +155,7 @@ if (process.argv.includes('--live')) {
       assert.match(result.description, /Hades/);
       assert.ok(result.description.length <= 500);
       assert.equal(result.values.Score, 9);
-      assert.match(result.values.Link, /ign.com/);
+      assert.ok(result.sources.some((source) => /ign\.com/.test(source.url)));
     }
   }
 }

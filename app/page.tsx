@@ -63,6 +63,7 @@ import { Empty, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   display,
+  preferredSourceUrl,
   validate,
   type Library,
   type Field,
@@ -771,10 +772,10 @@ export default function Home() {
                 </button>
                 <div className="card-bottom">
                   <span>{display(g.values.Ownership) || 'Uncategorized'}<small className="esrb-badge">ESRB: {display(g.values.ESRB)||'Unknown'}</small></span>
-                  {safeLink(g.values.Link) ? (
+                  {safeLink(preferredSourceUrl(g.lookup?.sources)) ? (
                     <a
                       className="game-link"
-                      href={safeLink(g.values.Link)}
+                      href={safeLink(preferredSourceUrl(g.lookup?.sources))}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={`Open website for ${title(g, fields)}`}
@@ -1088,21 +1089,6 @@ export default function Home() {
                     )}
                   </div>
                 ))}
-                {fields.some((f) => f.id === 'Release Date') && (
-                  <div className="field">
-                    <label htmlFor="end-date">
-                      Release date range end (optional)
-                    </label>
-                    <input
-                      id="end-date"
-                      type="date"
-                      value={draft.dateEnd?.slice(0, 10) ?? ''}
-                      onChange={(e) =>
-                        setDraft({ ...draft, dateEnd: e.target.value })
-                      }
-                    />
-                  </div>
-                )}
               </div>
               {error && (
                 <p className="error" role="alert">

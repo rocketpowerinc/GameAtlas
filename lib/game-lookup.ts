@@ -164,7 +164,6 @@ export function parseWikipedia(
     true,
     pageTitle.replace(/\s*\((?:\d{4} )?video game\)$/, ''),
   );
-  values.Link = ignUrl || wikiUrl;
   const cover = info.match(/<img\b[^>]*src="([^"]+)"/)?.[1];
   return {
     values,

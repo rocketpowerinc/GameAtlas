@@ -153,12 +153,6 @@
       ]
     },
     {
-      "id": "Link",
-      "name": "Link",
-      "type": "url",
-      "options": []
-    },
-    {
       "id": "Notes",
       "name": "Notes",
       "type": "text",
@@ -170,15 +164,8 @@
       "type": "multi_select",
       "options": [
         "Must have",
-        "Want soon",
         "Someday"
       ]
-    },
-    {
-      "id": "Target Price",
-      "name": "Target Price",
-      "type": "number",
-      "options": []
     },
     {
       "id": "Wishlists",

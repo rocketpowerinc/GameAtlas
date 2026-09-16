@@ -24,7 +24,7 @@ export function collectionStats(library:Library,now=new Date()){
  });
  const noStudio=owned.filter(g=>!tags(g,studio).length);
  const priority=field('Wishlist Priority');
- const priorityNames=['Must have','Want soon','Someday'];
+ const priorityNames=['Must have','Someday'];
  const wishlistPriorities=[...priorityNames,...new Set(wishlist.flatMap(g=>tags(g,priority)).filter(p=>!priorityNames.includes(p)&&p!=='Not set').sort()),'Not set'].map(label=>({label,games:wishlist.filter(g=>label==='Not set'?!tags(g,priority).length||tags(g,priority).includes(label):tags(g,priority).includes(label))}));
  const dateField=field('Release Date');
  const today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');

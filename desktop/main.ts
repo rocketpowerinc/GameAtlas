@@ -1,4 +1,5 @@
 import {withEsrb,searchEsrb,chooseEsrb} from '../lib/esrb';
+import {withCurrentLibraryShape} from '../lib/library';
 import { app, BrowserWindow, ipcMain, protocol, net, shell, dialog, Menu, nativeImage } from 'electron';
 import { join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -22,7 +23,7 @@ const primaryInstance=smoke||app.requestSingleInstanceLock();
 if(!primaryInstance)app.quit();
 let window:BrowserWindow; let store:LibraryStore;let preferences:PreferencesStore;
 let backupBusy=false;let restoring=false;
-function upgradeEsrb(){const original=store.read();const updated=withEsrb(original);if(JSON.stringify(updated)!==JSON.stringify(original)){store.snapshot();store.save(updated,false);}}
+function upgradeLibrary(){const original=store.read();const updated=withCurrentLibraryShape(withEsrb(original));if(JSON.stringify(updated)!==JSON.stringify(original)){store.snapshot();store.save(updated,false);}}
 const root=join(__dirname,'../dist');
 const artHosts=['ignimgs.com','ign.com','wikimedia.org','steamstatic.com','steamcdn-a.akamaihd.net'];
 const safeArt=(raw:string)=>{try{const u=new URL(raw);return u.protocol==='https:'&&!u.username&&!u.password&&artHosts.some(h=>u.hostname===h||u.hostname.endsWith('.'+h));}catch{return false;}};
@@ -56,7 +57,7 @@ app.whenReady().then(async()=>{
  mkdirSync(join(app.getPath('userData'),'artwork'),{recursive:true});
  const existing=existsSync(join(app.getPath('userData'),'library.sqlite'));
  store=new LibraryStore(app.getPath('userData'),join(__dirname,'../data/library.json'));
- upgradeEsrb();
+ upgradeLibrary();
  preferences=new PreferencesStore(app.getPath('userData'),existing);
  const scan=new ArtworkScan(store,{
   cached:url=>{const path=join(store.directory,'artwork',createHash('sha256').update(url).digest('hex'));return existsSync(path)&&existsSync(path+'.type')&&statSync(path).size>0;},
@@ -116,7 +117,7 @@ app.whenReady().then(async()=>{
  ipcMain.handle('request',async(event,path,method,body)=>{
   trusted(event);
   try{
-   if(path==='/api/library'&&method==='GET'){upgradeEsrb();return {ok:true,data:store.read()};}
+   if(path==='/api/library'&&method==='GET'){upgradeLibrary();return {ok:true,data:store.read()};}
    if(path==='/api/library'&&method==='PUT'){
     if(backupBusy)throw Error('Wait for the backup or restore to finish.');
     if(!preferences.read().setupComplete)throw Error('Finish setup before editing your library.');
@@ -247,6 +248,7 @@ app.whenReady().then(async()=>{
     if(rejected.ok)throw Error('Property editing was accepted');
     window.dispatchEvent(new Event('library-updated'));await wait();
     if(!document.querySelector('.game-card')||!document.querySelector('.game-release-date')?.textContent.includes('2024-01-02'))throw Error('Game card or release date missing');
+    if(document.querySelector('.game-link')?.href!=='https://www.ign.com/games/test-game')throw Error('Card shortcut did not prioritize IGN');
     if(document.querySelector('[aria-label="Refresh library"]')||document.querySelector('[aria-label="Grid view"]')||document.querySelector('[aria-label="Table view"]')||document.querySelector('.library-table'))throw Error('Removed library controls remain');
     const search=document.querySelector('.library-search').getBoundingClientRect(),filters=[...document.querySelectorAll('.filter-row .picker')].map(element=>element.getBoundingClientRect());
     if(filters.length!==5||filters.some(filter=>filter.top<search.bottom)||Math.max(...filters.map(filter=>filter.width))-Math.min(...filters.map(filter=>filter.width))>2)throw Error('Search and filter layout is uneven');
@@ -455,6 +457,7 @@ app.whenReady().then(async()=>{
     const description=document.querySelector('#edit-game-description');if(!description||description.value!=='A manually added description.')throw Error('Description editor missing');
     const title=document.querySelector('#edit-Title'),artwork=document.querySelector('.editor-artwork');if(!title||!artwork||!(title.compareDocumentPosition(artwork)&Node.DOCUMENT_POSITION_FOLLOWING)||!(artwork.compareDocumentPosition(description)&Node.DOCUMENT_POSITION_FOLLOWING))throw Error('Editor field order is wrong');
     if(document.querySelector('#edit-source-ign')?.value!=='https://www.ign.com/games/test-game'||document.querySelector('#edit-source-steam')?.value!=='https://store.steampowered.com/app/2'||!document.querySelector('#edit-source-wikipedia')||!document.querySelector('#edit-source-howlongtobeat')||!document.querySelector('#edit-source-youtube'))throw Error('Source URL editors missing');
+    if(document.getElementById('edit-Link')||document.getElementById('edit-Target Price')||document.querySelector('#end-date')||[...document.querySelectorAll('.choices')].some(group=>group.textContent.includes('Want soon')))throw Error('Retired game fields remain in the editor');
     const videoLinks=[...document.querySelectorAll('.youtube-searches a')];if(videoLinks.length!==3||!videoLinks[0].href.includes('official+trailer')||!videoLinks[1].href.includes('IGN+review')||!videoLinks[2].href.includes('Before+You+Buy+GameRanx'))throw Error('YouTube discovery fallbacks missing or out of order');
     document.querySelector('.source-youtube').scrollIntoView({block:'center'});await new Promise(r=>setTimeout(r,100));
    })()`);
@@ -468,6 +471,7 @@ app.whenReady().then(async()=>{
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(rating,'T — Teen');rating.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,100));
     [...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Save game').click();await new Promise(r=>setTimeout(r,300));
     if(!document.querySelector('.esrb-badge')?.textContent.includes('T — Teen'))throw Error('ESRB save failed');
+    if(document.querySelector('.game-link')?.href!=='https://www.youtube.com/watch?v=test123')throw Error('Card shortcut did not fall back to YouTube');
     document.querySelector('.game-card-main').click();await new Promise(r=>setTimeout(r,150));
     if(!document.querySelector('[data-slot="dialog-description"]')?.textContent.includes('An edited game description.'))throw Error('Edited description was not saved');
     if(document.querySelector('.game-page-source-links')?.textContent.includes('IGN')||!document.querySelector('.game-page-source-links')?.textContent.includes('Steam')||!document.querySelector('.game-page-source-links')?.textContent.includes('Wikipedia')||!document.querySelector('.game-page-source-links')?.textContent.includes('HowLongToBeat')||!document.querySelector('.game-page-source-links')?.textContent.includes('YouTube'))throw Error('Edited sources were not saved');

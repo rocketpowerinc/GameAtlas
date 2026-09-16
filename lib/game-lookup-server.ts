@@ -182,7 +182,6 @@ async function steamDetails(id: number): Promise<LookupDetails> {
   const url = `https://store.steampowered.com/app/${id}/`;
   const values: LookupDetails['values'] = {
     Title: d.name,
-    Link: url,
     Platform: ['Steam'],
   };
   if (d.developers?.length) values.Studio = d.developers.join(', ');
@@ -256,10 +255,6 @@ export async function gameDetails(
   const steam = details.find((d) => d.sources.some((s) => s.name === 'Steam'));
   const values = { ...steam?.values, ...wiki?.values };
   const sources = details.flatMap((d) => d.sources);
-  values.Link =
-    sources.find((s) => s.name === 'IGN')?.url ??
-    sources.find((s) => s.name === 'Steam')?.url ??
-    sources[0].url;
   if (steam && wiki && Array.isArray(values.Platform))
     values.Platform = [
       ...new Set([
