@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, renameSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import {ArtworkScan} from './artwork-scan';
+import {DescriptionScan} from './description-scan';
 import { LibraryStore } from './store';
 import { PreferencesStore } from './preferences';
 import { DesktopUpdater } from './updater';
@@ -59,6 +60,7 @@ app.whenReady().then(async()=>{
   download:async url=>{const response=await artwork(url);if(!response.ok)throw Error('Artwork could not be downloaded.');},
   search:searchGames,details:gameDetails
  });
+ const descriptions=new DescriptionScan(store,{search:searchGames,details:gameDetails});
  ipcMain.handle('artwork-status',event=>{trusted(event);return scan.read();});
  ipcMain.handle('cancel-artwork-scan',event=>{trusted(event);scan.cancel();});
  ipcMain.handle('scan-artwork',async event=>{
@@ -87,6 +89,18 @@ app.whenReady().then(async()=>{
    const key=createHash('sha256').update(url).digest('hex'),destination=join(store.directory,'artwork',key);
    writeFileSync(destination+'.type','image/png');writeFileSync(destination+'.tmp',bytes);renameSync(destination+'.tmp',destination);
    await scan.apply(id,url);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);return url;
+  }finally{backupBusy=false;}
+ });
+ ipcMain.handle('find-missing-descriptions',async event=>{
+  trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
+  if(!preferences.read().setupComplete)throw Error('Finish setup first.');
+  backupBusy=true;
+  try{
+   const result=await descriptions.run();
+   if(result.added)preferences.run(store,'change');
+   if(preferences.error)throw Error(preferences.error);
+   if(!result.total)return 'Every game already has a description.';
+   return `${result.added} descriptions added. ${result.missing} games still need a description.`;
   }finally{backupBusy=false;}
  });
  const updater=new DesktopUpdater(store,status=>window?.webContents.send('update-status',status));
@@ -347,6 +361,7 @@ app.whenReady().then(async()=>{
      await pause();
      const pdfButtons=[...document.querySelectorAll('button')].filter(b=>b.textContent.includes('PDF'));
      if(!pdfButtons.some(b=>b.textContent.includes('Physical Collection'))||!pdfButtons.some(b=>b.textContent.includes('Entire Library')))throw Error('PDF export buttons missing');
+     if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Find missing descriptions')))throw Error('Description scan button missing');
      const result=await window.gameAtlas.checkUpdates();
      if(result.state!=='available')throw Error('Release review not returned');
      for(let n=0;n<30&&!document.querySelector('.update-review');n++)await pause();
@@ -412,11 +427,20 @@ app.whenReady().then(async()=>{
    await window.webContents.executeJavaScript(`(async()=>{
     const edit=document.querySelector('.game-page-edit-top');if(!edit)throw Error('Edit button missing');
     edit.click();await new Promise(r=>setTimeout(r,150));
-    if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Replace artwork')))throw Error('Replace artwork button missing');
+    if(![...document.querySelectorAll('button')].some(b=>b.textContent.includes('Upload file to replace artwork')))throw Error('Upload artwork button missing');
+    const description=document.querySelector('#edit-game-description');if(!description||description.value!=='A concise test game description.')throw Error('Description editor missing');
+   })()`);
+   writeFileSync(join(app.getPath('temp'),'gameatlas-verification','game-editor.png'),(await window.webContents.capturePage()).toPNG());
+   await window.webContents.executeJavaScript(`(async()=>{
+    const description=document.querySelector('#edit-game-description');if(!description)throw Error('Description editor missing');
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(description,'An edited game description.');description.dispatchEvent(new Event('input',{bubbles:true}));description.dispatchEvent(new Event('change',{bubbles:true}));
     const rating=document.querySelector('#edit-ESRB');if(!rating||rating.value!=='Unknown')throw Error('ESRB migration/editor failed');
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(rating,'T — Teen');rating.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,100));
     [...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Save game').click();await new Promise(r=>setTimeout(r,300));
     if(!document.querySelector('.esrb-badge')?.textContent.includes('T — Teen'))throw Error('ESRB save failed');
+    document.querySelector('.game-card-main').click();await new Promise(r=>setTimeout(r,150));
+    if(!document.querySelector('[data-slot="dialog-description"]')?.textContent.includes('An edited game description.'))throw Error('Edited description was not saved');
+    document.querySelector('[data-slot="dialog-close"]').click();await new Promise(r=>setTimeout(r,150));
     document.querySelector('[aria-label="Filter by ESRB rating"]').click();await new Promise(r=>setTimeout(r,150));
     [...document.querySelectorAll('[role="option"]')].find(o=>o.textContent==='E — Everyone').click();await new Promise(r=>setTimeout(r,150));
     if(document.querySelector('.game-card'))throw Error('ESRB filter did not hide nonmatching game');

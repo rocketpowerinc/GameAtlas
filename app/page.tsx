@@ -950,7 +950,7 @@ export default function Home() {
                   >
                     <Search size={16} /> Find artwork & description
                   </button>
-                  <button type="button" className="quiet" disabled={lookupBusy||busy} onClick={()=>void replaceArtwork(draft)}><ImageUp size={16}/> Replace artwork with image file</button>
+                  <button type="button" className="quiet" disabled={lookupBusy||busy} onClick={()=>void replaceArtwork(draft)}><ImageUp size={16}/> Upload file to replace artwork</button>
                 </div>
               )}
               {(isNewGame || artworkLookup) && (
@@ -1018,6 +1018,10 @@ export default function Home() {
                   )}
                 </section>
               )}
+              <div className="field game-description-editor">
+                <label htmlFor="edit-game-description">Description</label>
+                <textarea id="edit-game-description" rows={5} maxLength={6000} value={draft.lookup?.description??''} placeholder="Add a concise description of this game." onChange={event=>setDraft({...draft,lookup:{...draft.lookup,sources:draft.lookup?.sources??[],description:event.target.value}})}/>
+              </div>
               {draft.lookup && (
                 <div className="lookup-sources">
                   {safeLink(draft.lookup.coverUrl) && (
@@ -1033,9 +1037,6 @@ export default function Home() {
                     />
                   )}
                   <div>
-                    {draft.lookup.description && (
-                      <p>{draft.lookup.description}</p>
-                    )}
                     <p>
                       Sources:{' '}
                       {draft.lookup.sources.map((s) => (

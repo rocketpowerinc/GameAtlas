@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('gameAtlas', {
  cancelArtworkScan:()=>ipcRenderer.invoke('cancel-artwork-scan'),
  applyArtwork:(id,url)=>ipcRenderer.invoke('apply-artwork',id,url),
  chooseArtworkFile:id=>ipcRenderer.invoke('choose-artwork-file',id),
+ findMissingDescriptions:()=>ipcRenderer.invoke('find-missing-descriptions'),
  getUpdateStatus: () => ipcRenderer.invoke('update-status'),
  installUpdate:version=>ipcRenderer.invoke('install-update',version),
  dismissUpdate:()=>ipcRenderer.invoke('dismiss-update'),
