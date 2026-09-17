@@ -988,9 +988,9 @@ export default function Home() {
                 <h3 id="source-editor-heading">Sources</h3>
                 <p className="muted">Add the pages you want shown on the game page. Leave a field blank to hide that source.</p>
                 <div className="source-editor-grid">
-                  {['YouTube','IGN','Steam','Wikipedia','HowLongToBeat'].map(name=>{
+                  {['YouTube','IGN','Steam','Wikipedia','HowLongToBeat','PriceCharting'].map(name=>{
                     const source=draft.lookup?.sources.find(item=>item.name.toLowerCase()===name.toLowerCase());
-                    const placeholder=name==='IGN'?'www.ign.com':name==='Steam'?'store.steampowered.com':name==='Wikipedia'?'en.wikipedia.org':name==='HowLongToBeat'?'howlongtobeat.com/game':'www.youtube.com/watch?v=';
+                    const placeholder=name==='IGN'?'www.ign.com':name==='Steam'?'store.steampowered.com':name==='Wikipedia'?'en.wikipedia.org':name==='HowLongToBeat'?'howlongtobeat.com/game':name==='PriceCharting'?'www.pricecharting.com/game':'www.youtube.com/watch?v=';
                     return <div className={`field ${name==='YouTube'?'source-youtube':''}`} key={name}><label htmlFor={`edit-source-${name.toLowerCase()}`}>{name} URL</label><input id={`edit-source-${name.toLowerCase()}`} type="url" placeholder={`https://${placeholder}…`} value={source?.url??''} onChange={event=>{
                       const sources=(draft.lookup?.sources??[]).filter(item=>item.name.toLowerCase()!==name.toLowerCase());
                       if(event.target.value)sources.push({name,url:event.target.value});

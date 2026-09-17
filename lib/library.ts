@@ -10,14 +10,14 @@ export function dedupeSources(sources:NonNullable<Game['lookup']>['sources']|und
  for(const source of byName.values()){if(byUrl.has(source.url))byUrl.delete(source.url);byUrl.set(source.url,source);}
  return [...byUrl.values()];
 }
-const sourceOrder=['youtube','ign','steam','wikipedia','howlongtobeat'];
+const sourceOrder=['youtube','ign','steam','wikipedia','howlongtobeat','pricecharting'];
 export function orderedSources(sources:NonNullable<Game['lookup']>['sources']|undefined){return dedupeSources(sources).map((source,index)=>({source,index,rank:sourceOrder.indexOf(source.name.trim().toLowerCase())})).sort((a,b)=>(a.rank<0?sourceOrder.length:a.rank)-(b.rank<0?sourceOrder.length:b.rank)||a.index-b.index).map(item=>item.source);}
 export function preferredSourceUrl(sources:NonNullable<Game['lookup']>['sources']|undefined){
  const order=['ign','youtube','wikipedia','howlongtobeat'];
  for(const name of order){const source=dedupeSources(sources).find(item=>item.name.trim().toLowerCase()===name);if(source?.url)return source.url;}
  return '';
 }
-const sourceName=(raw:string)=>{try{const host=new URL(raw).hostname.toLowerCase();if(host==='youtu.be'||host.endsWith('youtube.com'))return 'YouTube';if(host.endsWith('ign.com'))return 'IGN';if(host.endsWith('wikipedia.org'))return 'Wikipedia';if(host.endsWith('howlongtobeat.com'))return 'HowLongToBeat';if(host.endsWith('steampowered.com'))return 'Steam';}catch{}return 'Website';};
+const sourceName=(raw:string)=>{try{const host=new URL(raw).hostname.toLowerCase();if(host==='youtu.be'||host.endsWith('youtube.com'))return 'YouTube';if(host.endsWith('ign.com'))return 'IGN';if(host.endsWith('wikipedia.org'))return 'Wikipedia';if(host.endsWith('howlongtobeat.com'))return 'HowLongToBeat';if(host.endsWith('pricecharting.com'))return 'PriceCharting';if(host.endsWith('steampowered.com'))return 'Steam';}catch{}return 'Website';};
 export function withCurrentLibraryShape(library:Library):Library{
  const next=structuredClone(library),retired=new Set(next.fields.filter(field=>['link','target price'].includes(field.name.trim().toLowerCase())||['link','target price'].includes(field.id.trim().toLowerCase())).map(field=>field.id));
  const linkIds=next.fields.filter(field=>field.name.trim().toLowerCase()==='link'||field.id.trim().toLowerCase()==='link').map(field=>field.id);
@@ -25,9 +25,8 @@ export function withCurrentLibraryShape(library:Library):Library{
  next.fields=next.fields.filter(field=>!retired.has(field.id)).map(field=>field.id===priority?.id?{...field,options:field.options.filter(option=>option.trim().toLowerCase()!=='want soon')}:field);
  for(const game of next.games){
   for(const id of linkIds){const url=typeof game.values[id]==='string'?game.values[id].trim():'';if(/^https?:\/\//i.test(url)){const sources=game.lookup?.sources??[];if(!sources.some(source=>source.url===url))game.lookup={...game.lookup,sources:[...sources,{name:sourceName(url),url}]};}}
-  if(game.lookup)game.lookup={...game.lookup,sources:dedupeSources(game.lookup.sources)};
+  if(game.lookup)game.lookup={...game.lookup,sources:dedupeSources(game.lookup.sources.map(source=>sourceName(source.url)==='PriceCharting'?{...source,name:'PriceCharting'}:source))};
   if(game.lookup?.description)game.lookup.description=decodeHtml(game.lookup.description);
-  if(String(game.values.Title||'').trim().toLowerCase()==='wolfenstein the new order and the old blood'&&game.lookup)game.lookup={...game.lookup,sources:game.lookup.sources.filter(source=>{try{return !new URL(source.url).hostname.toLowerCase().endsWith('pricecharting.com');}catch{return true;}})};
   for(const id of retired)delete game.values[id];
   if(priority){const value=game.values[priority.id];if(Array.isArray(value))game.values[priority.id]=value.filter(option=>option.trim().toLowerCase()!=='want soon');else if(typeof value==='string'&&value.trim().toLowerCase()==='want soon')game.values[priority.id]='';}
   delete (game as Game&{dateEnd?:string}).dateEnd;delete (game as Game&{dateIsTime?:number}).dateIsTime;

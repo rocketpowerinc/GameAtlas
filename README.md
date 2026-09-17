@@ -92,10 +92,10 @@ Opening a game first shows a clean, read-only game page with larger artwork, its
 
 The source editor also accepts a YouTube video URL. Ordered shortcuts help find an official trailer first, then an IGN review, then a GameRanx **Before You Buy** video. The user reviews the search result and pastes the exact video URL, which prevents an unrelated video from being attached automatically.
 
-The game editor includes URL fields for IGN, Steam, Wikipedia, and HowLongToBeat. Add the exact `howlongtobeat.com/game/...` page when one exists and it will appear with the other labeled links on the read-only game page. GameAtlas stores only the link; it does not scrape completion-time data from HowLongToBeat.
+The game editor includes URL fields for YouTube, IGN, Steam, Wikipedia, HowLongToBeat, and PriceCharting. Add the exact game page when one exists and it will appear with the other labeled links on the read-only game page. GameAtlas stores only these links; it does not scrape completion-time or pricing data from them.
 
 The retired Link, Target Price, and release-date range-end fields are removed from existing libraries during upgrade. A valid legacy Link is first copied into Sources when needed. Wishlist Priority offers Must have and Someday; the retired Want Soon choice is removed. The card shortcut uses the first available saved source in this order: IGN, YouTube, Wikipedia, then HowLongToBeat.
 
 Each game keeps at most one URL for a given source label. When an older source and the previously vetted Link use the same label, the vetted Link wins, preventing duplicate links such as two Wikipedia buttons on the game page.
 
-Available source links display as YouTube, IGN, Steam, Wikipedia, and HowLongToBeat. The editor presents the same order with one full-width URL field per row. Library upgrades decode stored HTML character entities in descriptions and remove the obsolete PriceCharting source from the combined Wolfenstein entry.
+Available source links display as YouTube, IGN, Steam, Wikipedia, HowLongToBeat, and PriceCharting. The editor presents the same order with one full-width URL field per row. Library upgrades decode stored HTML character entities in descriptions and recognize existing PriceCharting links by their domain.
