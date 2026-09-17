@@ -87,7 +87,7 @@ Use the sun/moon button beside Settings to switch between light and dark themes.
 
 ESRB ratings appear on game cards and in list view. Use the ESRB filter or sort from Everyone first / Mature first. Unknown, pending, and unrated entries remain at the end. Ratings can be edited in game details; verified imported ratings link to the ESRB listing and its platforms. Some original releases predate ESRB. A rating for one edition should not be assumed to cover every port.
 
-Use **Settings > Create Collection PDF** to export either the games you own physically or your entire game library. Both printable catalogs include console and peripheral totals on the cover, then list all hardware before the games. Hardware entries include cached artwork, manufacturer, model, release date, description, and notes. Game entries retain their pertinent details, notes, clickable website links, and page numbers.
+Use **Settings > Create Collection PDF** to export either the games you own physically or your entire game library. Both printable catalogs include console and peripheral totals on the cover. Consoles, peripherals, and games each begin on their own pages, use their own relevant numbering, and are grouped chronologically by release year. Hardware entries include cached artwork, manufacturer, model, release date, description, and notes. Game entries retain their pertinent details, notes, clickable website links, and page numbers.
 
 Open any existing game and choose **Upload file to replace artwork** to use your own PNG, JPG, WebP, GIF, or AVIF image. GameAtlas stores a safe local copy with the library, so it is included in complete backups and restores.
 
