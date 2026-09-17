@@ -55,7 +55,7 @@ export function DesktopSettings({open,onOpenChange,onReload,onArtwork,onDescript
       <option value="manual">Manual only</option>
      </select>
      <p className="muted">{preferences.backupMode==='daily'?'Runs once per day while GameAtlas is open. If it is closed, the backup runs the next time you open it.':preferences.backupMode==='changes'?'Creates a complete backup after each library change, including deleting a game.':'Only runs when you choose Save complete backup. A safety copy is still made before restoring a library.'}</p>
-     <p className="muted">Backups include the collection and cached thumbnails. Manual backups also try to download missing artwork. A Google Drive folder can sync your backups to another device.</p>
+     <p className="muted">Backups include the collection and every thumbnail currently used by a game. Unused previews and replaced artwork are removed. Manual backups also try to download missing artwork. A Google Drive folder can sync your backups to another device.</p>
      <p className="muted">Only the newest 10 automatic and safety backups are kept across the selected and internal backup folders. Older copies are removed automatically. Manually exported backups are kept until you delete them.</p>
      {preferences.lastBackupAt&&<p className="muted">Last scheduled backup: {new Date(preferences.lastBackupAt).toLocaleString()}</p>}
      {preferences.backupError&&<p role="alert" className="error">{preferences.backupError}</p>}

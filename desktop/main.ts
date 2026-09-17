@@ -10,7 +10,7 @@ import {DescriptionScan} from './description-scan';
 import { LibraryStore } from './store';
 import { PreferencesStore } from './preferences';
 import { DesktopUpdater } from './updater';
-import { writeBackup, readBackup, missingArtwork } from './backup';
+import { writeBackup, readBackup, missingArtwork, pruneUnusedArtwork } from './backup';
 import { searchGames, gameDetails } from '../lib/game-lookup-server';
 import {exportCollectionPdf,selectPdfLibrary,type PdfScope} from './pdf-export';
 import {portableUserData} from './portable';
@@ -58,6 +58,7 @@ app.whenReady().then(async()=>{
  const existing=existsSync(join(app.getPath('userData'),'library.sqlite'));
  store=new LibraryStore(app.getPath('userData'),join(__dirname,'../data/library.json'));
  upgradeLibrary();
+ pruneUnusedArtwork(store.read(),store.directory);
  preferences=new PreferencesStore(app.getPath('userData'),existing);
  const scan=new ArtworkScan(store,{
   cached:url=>{const path=join(store.directory,'artwork',createHash('sha256').update(url).digest('hex'));return existsSync(path)&&existsSync(path+'.type')&&statSync(path).size>0;},
@@ -71,12 +72,12 @@ app.whenReady().then(async()=>{
   trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
   if(!preferences.read().setupComplete)throw Error('Finish setup first.');
   backupBusy=true;
-  try{const result=await scan.run();if(result.added)preferences.run(store,'change');return {...result,error:result.error||preferences.error||undefined};}finally{backupBusy=false;}
+  try{const result=await scan.run();pruneUnusedArtwork(store.read(),store.directory);if(result.added)preferences.run(store,'change');return {...result,error:result.error||preferences.error||undefined};}finally{backupBusy=false;}
  });
  ipcMain.handle('apply-artwork',async(event,id,url)=>{
   trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
   if(!preferences.read().setupComplete)throw Error('Finish setup first.');
-  backupBusy=true;try{await scan.apply(id,url);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);}finally{backupBusy=false;}
+  backupBusy=true;try{await scan.apply(id,url);pruneUnusedArtwork(store.read(),store.directory);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);}finally{backupBusy=false;}
  });
  ipcMain.handle('choose-artwork-file',async(event,id)=>{
   trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
@@ -92,7 +93,7 @@ app.whenReady().then(async()=>{
    const url='https://local-art.gameatlas.invalid/'+createHash('sha256').update(bytes).digest('hex');
    const key=createHash('sha256').update(url).digest('hex'),destination=join(store.directory,'artwork',key);
    writeFileSync(destination+'.type','image/png');writeFileSync(destination+'.tmp',bytes);renameSync(destination+'.tmp',destination);
-   await scan.apply(id,url);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);return url;
+   await scan.apply(id,url);pruneUnusedArtwork(store.read(),store.directory);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);return url;
   }finally{backupBusy=false;}
  });
  ipcMain.handle('description-status',event=>{trusted(event);return descriptions.missing();});
@@ -122,7 +123,7 @@ app.whenReady().then(async()=>{
     if(backupBusy)throw Error('Wait for the backup or restore to finish.');
     if(!preferences.read().setupComplete)throw Error('Finish setup before editing your library.');
     if(JSON.stringify(body.fields)!==JSON.stringify(store.read().fields))throw Error('Library properties cannot be added, removed, or changed.');
-    const saved=store.save(body,false);preferences.run(store,'change');const warning=preferences.error;
+    const saved=store.save(body,false);pruneUnusedArtwork(saved,store.directory);preferences.run(store,'change');const warning=preferences.error;
     return {ok:true,data:saved,warning};
    }
    if(path==='/api/game-lookup'&&method==='POST'){
@@ -155,7 +156,7 @@ app.whenReady().then(async()=>{
     const choice=await dialog.showMessageBox(window,{type:'warning',title:'Some thumbnails are unavailable',message:missing.length+' artwork links could not be downloaded.',detail:'All game properties and descriptions will be included. These missing image files cannot be restored offline from this backup. You can cancel and retry when the sources are available.',buttons:['Cancel','Save with missing thumbnails'],defaultId:0,cancelId:0});
     if(choice.response!==1)return '';
    }
-   const result=writeBackup(store.db,store.directory,filePath);
+   pruneUnusedArtwork(store.read(),store.directory);const result=writeBackup(store.db,store.directory,filePath);
    return 'Backup saved: '+result.games+' games and '+result.images+' image files.'+(result.missing.length?' '+result.missing.length+' thumbnails are missing.':' All linked thumbnails are included.');
   }finally{backupBusy=false;}
  });
@@ -178,10 +179,10 @@ app.whenReady().then(async()=>{
    if(canceled)return false;
    const backup=readBackup(filePaths[0]);
    const detail=backup.summary.legacy?'This older JSON backup contains no image files. Your existing cached images will be kept.':backup.summary.images+' image files will be restored.'+(backup.summary.missing.length?' '+backup.summary.missing.length+' linked thumbnails are missing from this backup.':'');
-   const choice=await dialog.showMessageBox(window,{type:'warning',title:'Restore GameAtlas backup',message:'Replace your collection with '+backup.summary.games+' games?',detail:detail+' A complete safety backup of the current collection and cached images will be saved first.',buttons:['Cancel','Restore backup'],defaultId:0,cancelId:0});
+   const choice=await dialog.showMessageBox(window,{type:'warning',title:'Restore GameAtlas backup',message:'Replace your collection with '+backup.summary.games+' games?',detail:detail+' A complete safety backup of the current collection and its linked artwork will be saved first.',buttons:['Cancel','Restore backup'],defaultId:0,cancelId:0});
    if(choice.response!==1)return false;
    restoring=true;await Promise.allSettled([...inflight.values()]);
-   store.restore(backup);
+   store.restore(backup);pruneUnusedArtwork(store.read(),store.directory);
    preferences.run(store,'change');if(preferences.error)await dialog.showMessageBox(window,{type:'warning',message:preferences.error});
    return true;
   }finally{restoring=false;backupBusy=false;}

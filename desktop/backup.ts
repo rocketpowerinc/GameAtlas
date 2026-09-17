@@ -6,12 +6,27 @@ import { validate, type Library } from '../lib/library';
 export const imageKey=(url:string)=>createHash('sha256').update(url).digest('hex');
 const digest=(bytes:Uint8Array|string)=>createHash('sha256').update(bytes).digest('hex');
 const types=new Set(['image/jpeg','image/png','image/webp','image/gif','image/avif']);
+const referencedArtwork=(library:Library)=>new Set(library.games.map(game=>game.lookup?.coverUrl).filter((url):url is string=>!!url).map(imageKey));
 export type BackupSummary={games:number;images:number;missing:string[];createdAt:string;legacy:boolean};
 export function missingArtwork(library:Library,directory:string):string[]{
  return [...new Set(library.games.map(g=>g.lookup?.coverUrl).filter((u):u is string=>!!u))].filter(url=>{
   const path=join(directory,'artwork',imageKey(url));
   return !existsSync(path)||!existsSync(path+'.type');
  });
+}
+export function pruneUnusedArtwork(library:Library,directory:string):number{
+ const art=join(directory,'artwork');if(!existsSync(art))return 0;
+ const referenced=referencedArtwork(library);let removed=0;
+ for(const name of readdirSync(art)){
+  const key=/^[a-f0-9]{64}$/.test(name)?name:/^([a-f0-9]{64})\.type$/.exec(name)?.[1];
+  if(!key)continue;
+  const image=join(art,key),type=image+'.type';
+  if(!referenced.has(key)){
+   if(existsSync(image)){rmSync(image,{force:true});removed++;}
+   if(existsSync(type))rmSync(type,{force:true});
+  }else if(name.endsWith('.type')&&!existsSync(image))rmSync(type,{force:true});
+ }
+ return removed;
 }
 export function writeBackup(db:DatabaseSync,directory:string,destination:string):BackupSummary{
  mkdirSync(dirname(destination),{recursive:true});
@@ -22,12 +37,13 @@ export function writeBackup(db:DatabaseSync,directory:string,destination:string)
   archive=new DatabaseSync(temp);
   const row=archive.prepare('SELECT data,revision FROM library WHERE id=1').get()!;
   const library={...JSON.parse(String(row.data)),revision:Number(row.revision)};validate(library);
+  const referenced=referencedArtwork(library);
   archive.exec('CREATE TABLE backup_manifest (data TEXT NOT NULL); CREATE TABLE backup_artwork (key TEXT PRIMARY KEY, mime TEXT NOT NULL, digest TEXT NOT NULL, bytes BLOB NOT NULL)');
   const put=archive.prepare('INSERT INTO backup_artwork VALUES (?,?,?,?)');
   const art=join(directory,'artwork');let images=0,totalBytes=0;
   archive.exec('BEGIN');
   if(existsSync(art))for(const key of readdirSync(art)){
-   if(!/^[a-f0-9]{64}$/.test(key)||!existsSync(join(art,key+'.type')))continue;
+   if(!referenced.has(key)||!existsSync(join(art,key+'.type')))continue;
    const mime=readFileSync(join(art,key+'.type'),'utf8');if(!types.has(mime))throw Error('An artwork file has an unsupported format.');
    const bytes=readFileSync(join(art,key));if(bytes.length>10_000_000)throw Error('An artwork file is too large.');
    totalBytes+=bytes.length;if(images>=10000||totalBytes>1_000_000_000)throw Error('Artwork exceeds the 1 GB backup limit.');
@@ -63,11 +79,12 @@ export function readBackup(path:string):LoadedBackup {
   const library={...JSON.parse(String(row.data)),revision:Number(row.revision)};validate(library);
   const stats=db.prepare('SELECT COUNT(*) AS count, SUM(length(bytes)) AS size, MAX(length(bytes)) AS largest FROM backup_artwork').get()!;
   if(Number(stats.count)>10000||Number(stats.size)>1_000_000_000||Number(stats.largest)>10_000_000)throw Error('Artwork exceeds backup limits.');
-  const artwork=db.prepare('SELECT * FROM backup_artwork').all().map(row=>{
+  const archivedArtwork=db.prepare('SELECT * FROM backup_artwork').all().map(row=>{
    const key=String(row.key),mime=String(row.mime),bytes=row.bytes;
    if(!/^[a-f0-9]{64}$/.test(key)||!types.has(mime)||!(bytes instanceof Uint8Array)||digest(bytes)!==row.digest)throw Error('A thumbnail in this backup is damaged.');
    return {key,mime,bytes};
   });
+  const referenced=referencedArtwork(library),artwork=archivedArtwork.filter(image=>referenced.has(image.key));
   const keys=new Set(artwork.map(a=>a.key));
   const missing=[...new Set(library.games.map(g=>g.lookup?.coverUrl).filter((u):u is string=>!!u))].filter(u=>!keys.has(imageKey(u)));
   return {library,artwork,summary:{games:library.games.length,images:artwork.length,missing,createdAt:String(manifest.createdAt),legacy:false}};

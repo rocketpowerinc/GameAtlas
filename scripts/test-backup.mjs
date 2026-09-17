@@ -4,10 +4,10 @@ import { mkdtempSync, mkdirSync, rmSync, readFileSync, writeFileSync, renameSync
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { randomUUID } from 'node:crypto';
+import { randomUUID,createHash } from 'node:crypto';
 const require=createRequire(import.meta.url);
 const { LibraryStore }=require('../desktop-dist/store.cjs');
-const { writeBackup,readBackup,imageKey }=require('../desktop-dist/backup.cjs');
+const { writeBackup,readBackup,imageKey,pruneUnusedArtwork }=require('../desktop-dist/backup.cjs');
 const root=mkdtempSync(join(tmpdir(),'gameatlas-full-test-'));
 const source=join(root,'source'),target=join(root,'target'),file=join(root,'complete.gameatlas');
 const seed=resolve('scripts/fixtures/library.json');
@@ -17,8 +17,11 @@ try{
  const library=a.read();const url=library.games.find(g=>g.lookup?.coverUrl).lookup.coverUrl,key=imageKey(url);
  const bytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j8WQAAAAASUVORK5CYII=','base64');
  mkdirSync(join(source,'artwork'));writeFileSync(join(source,'artwork',key),bytes);writeFileSync(join(source,'artwork',key+'.type'),'image/png');
+ const unusedKey='f'.repeat(64);writeFileSync(join(source,'artwork',unusedKey),Buffer.from('unused'));writeFileSync(join(source,'artwork',unusedKey+'.type'),'image/png');
  const summary=writeBackup(a.db,source,file);assert.equal(summary.images,1);assert.ok(summary.missing.length>0);
+ assert.equal(pruneUnusedArtwork(library,source),1);assert.equal(existsSync(join(source,'artwork',unusedKey)),false);assert.equal(existsSync(join(source,'artwork',unusedKey+'.type')),false);
  writeBackup(a.db,source,file); // Replacing an existing exported backup is atomic.
+ const oldArchive=new DatabaseSync(file);const unusedBytes=Buffer.from('unused old backup artwork');oldArchive.prepare('INSERT INTO backup_artwork VALUES (?,?,?,?)').run(unusedKey,'image/png',createHash('sha256').update(unusedBytes).digest('hex'),unusedBytes);oldArchive.close();
  const backup=readBackup(file);assert.deepEqual(backup.library,library);assert.equal(backup.artwork.length,1);
  a.close();a=undefined;rmSync(source,{recursive:true,force:true});
  b=new LibraryStore(target,seed);

@@ -25,6 +25,7 @@ Use the cog beside Add game to reopen Settings. The footer shortcut and all prop
 - Settings remain changeable at any time. Automatic modes make an initial baseline when setup/settings are saved.
 - The chosen folder may be a Google Drive folder. GameAtlas writes locally; your cloud-sync software handles uploading.
 - Restore always creates a safety backup in the app's internal backups folder, including in manual mode.
+- Backups contain each unique thumbnail currently used by the collection. Replaced artwork and unused search previews are removed automatically and are not restored later.
 - The newest 10 automatic and safety backups are kept in total across the selected folder and internal backups folder. Cleanup runs on launch and after backups; recognized backups from previous versions count toward the limit. Manual exports, unrelated files, and previously selected folders are left untouched.
 - Backup failures are reported after saving a game or in Settings; the game remains saved locally.
 
