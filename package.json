@@ -1,6 +1,6 @@
 {
   "name": "gameatlas",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -45,6 +45,8 @@
   "build": {
     "appId": "com.rocketpowerinc.gameatlas",
     "productName": "GameAtlas",
+    "compression": "maximum",
+    "afterPack": "scripts/after-pack.cjs",
     "directories": {
       "output": "release"
     },
