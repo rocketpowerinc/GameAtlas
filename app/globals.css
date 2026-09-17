@@ -1006,6 +1006,37 @@ footer {
   line-height: 1.7;
   margin: 10px 0 16px;
 }
+.pdf-export-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--accent);
+}
+.pdf-export-progress div {
+  display: grid;
+  gap: 3px;
+}
+.pdf-export-progress strong {
+  font-size: 14px;
+}
+.pdf-export-progress span {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.pdf-export-spinner {
+  animation: lookup-spin 1s linear infinite;
+  flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pdf-export-spinner {
+    animation: none;
+  }
+}
 .section-heading {
   justify-content: space-between;
   margin-bottom: 14px;

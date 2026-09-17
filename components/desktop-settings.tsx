@@ -1,7 +1,7 @@
 import {BrandMark,BrandName} from '@/components/brand';
 import type {UpdateStatus} from '@/desktop/updater';
 import {useEffect,useState} from 'react';
-import {FolderOpen,Download,Upload,FileDown} from 'lucide-react';
+import {FolderOpen,Download,Upload,FileDown,LoaderCircle} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import type {Preferences} from '@/desktop/preferences';
 export function DesktopSettings({open,onOpenChange,onReload,onArtwork,onDescriptions}:{onArtwork:()=>void;onDescriptions:()=>void;open:boolean;onOpenChange:(v:boolean)=>void;onReload:()=>Promise<void>}){
@@ -9,7 +9,7 @@ export function DesktopSettings({open,onOpenChange,onReload,onArtwork,onDescript
  const updating=!!update&&['checking','downloading','installing'].includes(update.state);
  useEffect(()=>{void window.gameAtlas.getUpdateStatus().then(setUpdate);return window.gameAtlas.onUpdateStatus(setUpdate);},[]);
  const [preferences,setPreferences]=useState<Preferences|null>(null);
- const [step,setStep]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const [step,setStep]=useState(0),[busy,setBusy]=useState(false),[pdfExport,setPdfExport]=useState<'all'|'physical'|null>(null),[error,setError]=useState(''),[message,setMessage]=useState('');
  useEffect(()=>{void window.gameAtlas.getSettings().then(setPreferences).catch(e=>setError(String(e)));},[open]);
  const wizard=preferences!==null&&!preferences.setupComplete;
  async function start(){
@@ -32,8 +32,8 @@ export function DesktopSettings({open,onOpenChange,onReload,onArtwork,onDescript
   try{setMessage(await window.gameAtlas.exportBackup());}catch(e){setError(String(e));}finally{setBusy(false);}
  }
  async function exportPdf(scope:'all'|'physical'){
-  setBusy(true);setError('');setMessage(scope==='physical'?'Building your physical collection PDF…':'Building your entire library PDF…');
-  try{const result=await window.gameAtlas.exportCollectionPdf(scope);setMessage(result||'PDF export canceled.');}catch(e){setError(String(e));setMessage('');}finally{setBusy(false);}
+  setBusy(true);setPdfExport(scope);setError('');setMessage('');
+  try{const result=await window.gameAtlas.exportCollectionPdf(scope);setMessage(result||'PDF export canceled.');}catch(e){setError(String(e));setMessage('');}finally{setPdfExport(null);setBusy(false);}
  }
  return <Dialog open={open||wizard||(!preferences&&!!error)} onOpenChange={v=>{if(!wizard&&!busy&&!updating)onOpenChange(v);}}>
   <DialogContent showCloseButton={!wizard} className={wizard?'editor settings-editor setup-wizard':'editor settings-editor'}>
@@ -65,7 +65,7 @@ export function DesktopSettings({open,onOpenChange,onReload,onArtwork,onDescript
      <button className="quiet" disabled={busy||updating} onClick={()=>void importLibrary()}><Upload size={18}/> Restore backup</button>
      <button className="quiet" disabled={busy||updating} onClick={()=>{void window.gameAtlas.openBackups().then(e=>{if(e)setError(e);}).catch(e=>setError(String(e)));}}>Open backup folder</button>
     </div>}
-    {!wizard&&<div className="settings-section"><h2>Create Collection PDF</h2><p className="muted">Create a polished, printable catalog with cover art and the details that matter most.</p><div className="backup-buttons"><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf('physical')}><FileDown size={18}/> Export Physical Collection PDF</button><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf('all')}><FileDown size={18}/> Export Entire Library PDF</button></div></div>}
+    {!wizard&&<div className="settings-section"><h2>Create Collection PDF</h2><p className="muted">Create a polished, printable catalog with cover art and the details that matter most.</p><div className="backup-buttons"><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf('physical')}>{pdfExport==='physical'?<LoaderCircle className="pdf-export-spinner" size={18} aria-hidden="true"/>:<FileDown size={18}/>} {pdfExport==='physical'?'Creating Physical PDF…':'Export Physical Collection PDF'}</button><button className="quiet" disabled={busy||updating} onClick={()=>void exportPdf('all')}>{pdfExport==='all'?<LoaderCircle className="pdf-export-spinner" size={18} aria-hidden="true"/>:<FileDown size={18}/>} {pdfExport==='all'?'Creating Library PDF…':'Export Entire Library PDF'}</button></div>{pdfExport&&<div className="pdf-export-progress" role="status" aria-live="polite"><LoaderCircle className="pdf-export-spinner" size={24} aria-hidden="true"/><div><strong>Creating your PDF…</strong><span>Adding collection details and artwork. Large libraries may take a moment.</span></div></div>}</div>}
     {!wizard&&<div className="settings-section"><h2>Game artwork</h2><p className="muted">Find missing thumbnails and choose images in a dedicated window.</p><button className="quiet" disabled={busy||updating} onClick={onArtwork}>Check for missing artwork</button></div>}
     {!wizard&&<div className="settings-section"><h2>Game descriptions</h2><p className="muted">Review every game without a description and add the right text yourself.</p><button className="quiet" disabled={busy||updating} onClick={onDescriptions}>Find missing descriptions</button></div>}
     {!wizard&&<div className="settings-section">

@@ -395,6 +395,11 @@ app.whenReady().then(async()=>{
      await pause();
      const pdfButtons=[...document.querySelectorAll('button')].filter(b=>b.textContent.includes('PDF'));
      if(!pdfButtons.some(b=>b.textContent.includes('Physical Collection'))||!pdfButtons.some(b=>b.textContent.includes('Entire Library')))throw Error('PDF export buttons missing');
+     const physicalPdf=pdfButtons.find(b=>b.textContent.includes('Physical Collection'));physicalPdf.click();
+     for(let n=0;n<20&&!document.querySelector('.pdf-export-progress');n++)await pause();
+     if(!document.querySelector('.pdf-export-progress')||!document.querySelector('.pdf-export-spinner'))throw Error('PDF export progress missing');
+     for(let n=0;n<100&&document.querySelector('.pdf-export-progress');n++)await pause();
+     if(document.querySelector('.pdf-export-progress'))throw Error('PDF export progress did not finish');
      const descriptions=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Find missing descriptions'));if(!descriptions)throw Error('Description review button missing');
      descriptions.click();
      for(let n=0;n<30&&!document.querySelector('.description-settings');n++)await pause();
