@@ -30,7 +30,7 @@ Use the cog beside Add game to reopen Settings. The footer shortcut and all prop
 - Backup failures are reported after saving a game or in Settings; the game remains saved locally.
 
 ## Collection dashboard
-Use Dashboard at the top of the app for two clear summary rows: All Games, Owned Physical, Owned Digital, Completed, then Playing, Must Play, Replay and Wish List. Must Play and Replay recognize matching values in either Status or Tags, and each summary opens its matching games.
+Use Dashboard at the top of the app for collection totals: All Games, Owned Physical, Owned Digital, Completed, Playing, Must Play, Replay, Wish List, and Upcoming. Upcoming includes every library entry with a valid full release date later than the current local date. Must Play and Replay recognize matching values in either Status or Tags, and each summary opens its matching games.
 
 The dashboard includes completion progress, owned platform/genre breakdowns and the five highest-rated owned games. Click totals or chart rows to browse those games, or a ranked game to open its details. Dashboard figures ignore active library search filters and update when your library changes.
 

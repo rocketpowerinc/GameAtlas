@@ -17,6 +17,7 @@ assert.equal(s.owned.length,5);assert.equal(s.total.length,7);assert.equal(s.com
 assert.equal(s.backlog.length,1);assert.equal(s.playing.length,1);assert.equal(s.unspecified.length,1);
 assert.equal(s.mustPlay.length,2);assert.deepEqual(s.replay.map(g=>g.id),['replay']);
 assert.equal(s.wishlist.length,1);assert.equal(s.completion,20);assert.equal(s.physical.length,3);assert.equal(s.digital.length,3);
+assert.equal(s.upcoming.length,0);
 assert.equal(s.platforms.find(p=>p.label==='PC').games.length,1);
 assert.equal(s.platforms.find(p=>p.label==='Switch').games.length,2);
 assert.equal(s.platforms.find(p=>p.label==='Not specified').games.length,3);
@@ -36,6 +37,7 @@ const insights=collectionStats({fields,revision:1,games:[
  game('w2',{Title:'Today',Ownership:['Wish List'],'Release Date':'2026-09-12'}),
  game('w3',{Title:'Unknown',Ownership:['Wish List'],'Release Date':'2026-02-30'}),
  game('w4',{Title:'Partial',Ownership:['Wish List'],'Wishlist Priority':['Custom priority'],'Release Date':'2026'}),
+ game('future-all',{Title:'Future library game','Release Date':'2026-10-01'}),
 ]},new Date(2026,8,12,12));
 assert.deepEqual(insights.unplayedRated.map(r=>r.game.id),['a','zero']);
 assert.equal(insights.mustPlay.length,5);assert.deepEqual(insights.replay.map(g=>g.id),['replay-tag']);
@@ -49,7 +51,8 @@ assert.equal(insights.wishlistPriorities.find(p=>p.label==='Someday').games.leng
 assert.equal(insights.wishlistPriorities.find(p=>p.label==='Not set').games.length,2);
 assert.equal(insights.wishlistPriorities.find(p=>p.label==='Custom priority').games.length,1);
 assert.deepEqual(insights.releaseGroups.upcoming.map(g=>g.id),['w1']);
+assert.deepEqual(insights.upcoming.map(g=>g.id),['w1','future-all']);
 assert.deepEqual(insights.releaseGroups.released.map(g=>g.id),['w2']);
 assert.equal(insights.releaseGroups.unknown.length,2);
-assert.equal(empty.unplayedRated.length,0);assert.equal(empty.developers.length,0);
+assert.equal(empty.unplayedRated.length,0);assert.equal(empty.developers.length,0);assert.equal(empty.upcoming.length,0);
 console.log('PASS: unplayed rankings exclude playing/completed/wishlist, developer counts and score averages, multiple/custom/unset priorities, date boundaries and invalid dates.');

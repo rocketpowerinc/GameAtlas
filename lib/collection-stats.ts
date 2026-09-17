@@ -12,6 +12,10 @@ export function collectionStats(library:Library,now=new Date()){
  const replay=owned.filter(g=>has(g,status,'Replay')||has(g,tagField,'Replay'));
  const unspecified=owned.filter(g=>!tags(g,status).length);
  const wishlist=library.games.filter(g=>has(g,own,'Wish List'));
+ const dateField=field('Release Date');
+ const today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+ const validReleaseDate=(game:Game)=>{const raw=String(game.values[dateField]||''),date=raw.slice(0,10),parsed=new Date(date+'T00:00:00Z');return /^\d{4}-\d{2}-\d{2}(?:$|T)/.test(raw)&&Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===date?date:'';};
+ const upcoming=library.games.filter(game=>{const date=validReleaseDate(game);return !!date&&date>today;});
  const groups=(id:string,source=owned)=>{const map=new Map<string,Game[]>();for(const g of source)for(const label of tags(g,id).length?tags(g,id):['Not specified'])map.set(label,[...(map.get(label)||[]),g]);return [...map].map(([label,games])=>({label,games})).sort((a,b)=>b.games.length-a.games.length||a.label.localeCompare(b.label));};
  const rated=owned.flatMap(g=>{const v=g.values[score];if(typeof v!=='number'&&typeof v!=='string'||String(v).trim()==='')return [];const n=Number(v);return Number.isFinite(n)&&n>=0&&n<=10?[{game:g,score:n,title:String(g.values[title]||'Untitled game')}]:[];}).sort((a,b)=>b.score-a.score||a.title.localeCompare(b.title));
  const backlogIds=new Set(backlog.map(g=>g.id));
@@ -26,14 +30,11 @@ export function collectionStats(library:Library,now=new Date()){
  const priority=field('Wishlist Priority');
  const priorityNames=['Must have','Someday'];
  const wishlistPriorities=[...priorityNames,...new Set(wishlist.flatMap(g=>tags(g,priority)).filter(p=>!priorityNames.includes(p)&&p!=='Not set').sort()),'Not set'].map(label=>({label,games:wishlist.filter(g=>label==='Not set'?!tags(g,priority).length||tags(g,priority).includes(label):tags(g,priority).includes(label))}));
- const dateField=field('Release Date');
- const today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
  const releaseGroups={released:[] as Game[],upcoming:[] as Game[],unknown:[] as Game[]};
  for(const game of wishlist){
-  const raw=String(game.values[dateField]||''),date=raw.slice(0,10);
-  const parsed=new Date(date+'T00:00:00Z');
-  if(!/^\d{4}-\d{2}-\d{2}(?:$|T)/.test(raw)||!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==date)releaseGroups.unknown.push(game);
+  const date=validReleaseDate(game);
+  if(!date)releaseGroups.unknown.push(game);
   else if(date>today)releaseGroups.upcoming.push(game);else releaseGroups.released.push(game);
  }
- return {unplayedRated,developers,noStudio,wishlistPriorities,releaseGroups,total:library.games,owned,completed,backlog,mustPlay,replay,playing,unspecified,wishlist,physical:owned.filter(g=>has(g,own,'Physical')),digital:owned.filter(g=>has(g,own,'Digital')),platforms:groups(platform),genres:groups(genre),rated,average:rated.length?rated.reduce((sum,g)=>sum+g.score,0)/rated.length:null,completion:owned.length?Math.round(completed.length/owned.length*100):0};
+ return {unplayedRated,developers,noStudio,wishlistPriorities,releaseGroups,upcoming,total:library.games,owned,completed,backlog,mustPlay,replay,playing,unspecified,wishlist,physical:owned.filter(g=>has(g,own,'Physical')),digital:owned.filter(g=>has(g,own,'Digital')),platforms:groups(platform),genres:groups(genre),rated,average:rated.length?rated.reduce((sum,g)=>sum+g.score,0)/rated.length:null,completion:owned.length?Math.round(completed.length/owned.length*100):0};
 }
