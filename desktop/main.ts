@@ -391,6 +391,10 @@ app.whenReady().then(async()=>{
    try{
     await window.webContents.executeJavaScript(`(async()=>{
      const pause=()=>new Promise(r=>setTimeout(r,100));
+     const sortTrigger=document.querySelector('[aria-label="Sort games"]');sortTrigger.click();await pause();
+     const oldestRelease=[...document.querySelectorAll('[role="option"]')].find(option=>option.textContent.includes('Oldest Release'));
+     if(!oldestRelease)throw Error('Oldest release sort missing');oldestRelease.click();await pause();
+     if(!sortTrigger.textContent.includes('Oldest Release'))throw Error('Oldest release sort could not be selected');
      document.querySelector('[aria-label="Settings"]').click();
      await pause();
      const pdfButtons=[...document.querySelectorAll('button')].filter(b=>b.textContent.includes('PDF'));

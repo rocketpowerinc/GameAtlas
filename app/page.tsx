@@ -82,6 +82,13 @@ const contains = (g: Game, key: string, value: string) =>
   Array.isArray(g.values[key])
     ? (g.values[key] as string[]).includes(value)
     : g.values[key] === value;
+const compareRelease = (a: Game, b: Game, newest: boolean) => {
+  const first = display(a.values['Release Date']).trim();
+  const second = display(b.values['Release Date']).trim();
+  if (!first || !second) return first ? -1 : second ? 1 : 0;
+  const result = first.localeCompare(second);
+  return newest ? -result : result;
+};
 const safeLink = (value: unknown) => {
   try {
     const url = new URL(display(value));
@@ -546,10 +553,8 @@ export default function Home() {
         .sort((a, b) =>
           sort.startsWith('ESRB:') ? compareEsrb(a.values.ESRB,b.values.ESRB,sort==='ESRB: Mature first') || title(a,fields).localeCompare(title(b,fields)) : sort === 'Highest score'
             ? Number(b.values.Score || 0) - Number(a.values.Score || 0)
-            : sort === 'Newest release'
-              ? display(b.values['Release Date']).localeCompare(
-                  display(a.values['Release Date']),
-                )
+            : sort === 'Newest Release' || sort === 'Oldest Release'
+              ? compareRelease(a,b,sort === 'Newest Release') || title(a,fields).localeCompare(title(b,fields))
               : title(a, fields).localeCompare(title(b, fields)) *
                 (sort === 'Title Z–A' ? -1 : 1),
         ),
@@ -696,7 +701,8 @@ export default function Home() {
               'Highest score',
               'ESRB: Everyone first',
               'ESRB: Mature first',
-              'Newest release',
+              'Oldest Release',
+              'Newest Release',
             ]}
             label="Sort games"
           />
