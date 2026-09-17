@@ -6,10 +6,10 @@ import { validate, type Library } from '../lib/library';
 export const imageKey=(url:string)=>createHash('sha256').update(url).digest('hex');
 const digest=(bytes:Uint8Array|string)=>createHash('sha256').update(bytes).digest('hex');
 const types=new Set(['image/jpeg','image/png','image/webp','image/gif','image/avif']);
-const referencedArtwork=(library:Library)=>new Set(library.games.map(game=>game.lookup?.coverUrl).filter((url):url is string=>!!url).map(imageKey));
-export type BackupSummary={games:number;images:number;missing:string[];createdAt:string;legacy:boolean};
+const referencedArtwork=(library:Library)=>new Set([...library.games.map(game=>game.lookup?.coverUrl),...(library.hardware??[]).map(item=>item.coverUrl)].filter((url):url is string=>!!url).map(imageKey));
+export type BackupSummary={games:number;hardware:number;images:number;missing:string[];createdAt:string;legacy:boolean};
 export function missingArtwork(library:Library,directory:string):string[]{
- return [...new Set(library.games.map(g=>g.lookup?.coverUrl).filter((u):u is string=>!!u))].filter(url=>{
+ return [...new Set([...library.games.map(g=>g.lookup?.coverUrl),...(library.hardware??[]).map(item=>item.coverUrl)].filter((u):u is string=>!!u))].filter(url=>{
   const path=join(directory,'artwork',imageKey(url));
   return !existsSync(path)||!existsSync(path+'.type');
  });
@@ -50,7 +50,7 @@ export function writeBackup(db:DatabaseSync,directory:string,destination:string)
    put.run(key,mime,digest(bytes),bytes);images++;
   }
   const missing=missingArtwork(library,directory);
-  const summary={games:library.games.length,images,missing,createdAt:new Date().toISOString(),legacy:false};
+  const summary={games:library.games.length,hardware:(library.hardware??[]).length,images,missing,createdAt:new Date().toISOString(),legacy:false};
   archive.prepare('INSERT INTO backup_manifest VALUES (?)').run(JSON.stringify({format:'gameatlas-full',version:1,...summary,libraryDigest:digest(String(row.data))}));
   archive.exec('COMMIT');archive.close();archive=undefined;
   renameSync(temp,destination);
@@ -64,7 +64,7 @@ export function readBackup(path:string):LoadedBackup {
  if(header.toString()!=='SQLite format 3\0'){
   if(statSync(path).size>1_800_000)throw Error('This is not a supported GameAtlas backup.');
   const data=JSON.parse(readFileSync(path,'utf8'));if(data.format!=='gameatlas-v1')throw Error('Choose a GameAtlas backup.');
-  validate(data);return {library:data,artwork:[],summary:{games:data.games.length,images:0,missing:[],createdAt:'',legacy:true}};
+  validate(data);return {library:data,artwork:[],summary:{games:data.games.length,hardware:(data.hardware??[]).length,images:0,missing:[],createdAt:'',legacy:true}};
  }
  const db=new DatabaseSync(path,{readOnly:true});
  try{
@@ -86,7 +86,7 @@ export function readBackup(path:string):LoadedBackup {
   });
   const referenced=referencedArtwork(library),artwork=archivedArtwork.filter(image=>referenced.has(image.key));
   const keys=new Set(artwork.map(a=>a.key));
-  const missing=[...new Set(library.games.map(g=>g.lookup?.coverUrl).filter((u):u is string=>!!u))].filter(u=>!keys.has(imageKey(u)));
-  return {library,artwork,summary:{games:library.games.length,images:artwork.length,missing,createdAt:String(manifest.createdAt),legacy:false}};
+  const missing=[...new Set([...library.games.map(g=>g.lookup?.coverUrl),...(library.hardware??[]).map(item=>item.coverUrl)].filter((u):u is string=>!!u))].filter(u=>!keys.has(imageKey(u)));
+  return {library,artwork,summary:{games:library.games.length,hardware:(library.hardware??[]).length,images:artwork.length,missing,createdAt:String(manifest.createdAt),legacy:false}};
  }finally{db.close();}
 }

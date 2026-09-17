@@ -15,7 +15,7 @@ export class LibraryStore {
   this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS library (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL, revision INTEGER NOT NULL)');
   if(!this.db.prepare('SELECT id FROM library WHERE id=1').get()){
    const data=JSON.parse(readFileSync(seed,'utf8'));validate(data);
-   this.db.prepare('INSERT INTO library VALUES (1,?,1)').run(JSON.stringify({fields:data.fields,games:data.games}));
+   this.db.prepare('INSERT INTO library VALUES (1,?,1)').run(JSON.stringify({fields:data.fields,games:data.games,hardware:data.hardware??[]}));
   }
   this.recoverRestore();
  }
@@ -40,7 +40,7 @@ export class LibraryStore {
   validate(data);
   if(!Number.isSafeInteger(data.revision)||data.revision!==this.read().revision)throw Error('Your library changed. Reload before saving.');
   if(snapshot){this.snapshot('daily-'+new Date().toISOString().slice(0,10));this.snapshot();}
-  const result=this.db.prepare('UPDATE library SET data=?, revision=revision+1 WHERE id=1 AND revision=?').run(JSON.stringify({fields:data.fields,games:data.games}),data.revision);
+  const result=this.db.prepare('UPDATE library SET data=?, revision=revision+1 WHERE id=1 AND revision=?').run(JSON.stringify({fields:data.fields,games:data.games,hardware:data.hardware??[]}),data.revision);
   if(!result.changes)throw Error('Your library changed. Reload before saving.');
   return this.read();
  }

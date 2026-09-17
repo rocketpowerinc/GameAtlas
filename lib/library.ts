@@ -1,7 +1,8 @@
 import {decodeHtml} from './game-lookup';
 export type Field = {id:string;name:string;type:'text'|'multi_select'|'number'|'date'|'url'|'checkbox';options:string[]};
 export type Game = {id:string;values:Record<string,string|number|boolean|string[]>;esrb?:{url:string;title:string;platforms:string[];checkedAt:string};sourceUrl?:string;lookup?:{sources:{name:string;url:string}[];scoreSource?:string;releaseNote?:string;coverUrl?:string;description?:string}};
-export type Library = {fields:Field[];games:Game[];revision:number};
+export type Hardware = {id:string;name:string;type:'Console'|'Peripheral';manufacturer:string;model?:string;releaseDate?:string;notes?:string;description?:string;coverUrl?:string};
+export type Library = {fields:Field[];games:Game[];hardware?:Hardware[];revision:number};
 export const display = (v:unknown):string => Array.isArray(v)?v.join(', '):v===undefined||v===null?'':String(v);
 export function dedupeSources(sources:NonNullable<Game['lookup']>['sources']|undefined){
  const byName=new Map<string,{name:string;url:string}>();
@@ -20,6 +21,7 @@ export function preferredSourceUrl(sources:NonNullable<Game['lookup']>['sources'
 const sourceName=(raw:string)=>{try{const host=new URL(raw).hostname.toLowerCase();if(host==='youtu.be'||host.endsWith('youtube.com'))return 'YouTube';if(host.endsWith('ign.com'))return 'IGN';if(host.endsWith('wikipedia.org'))return 'Wikipedia';if(host.endsWith('howlongtobeat.com'))return 'HowLongToBeat';if(host.endsWith('pricecharting.com'))return 'PriceCharting';if(host.endsWith('steampowered.com'))return 'Steam';}catch{}return 'Website';};
 export function withCurrentLibraryShape(library:Library):Library{
  const next=structuredClone(library),retired=new Set(next.fields.filter(field=>['link','target price'].includes(field.name.trim().toLowerCase())||['link','target price'].includes(field.id.trim().toLowerCase())).map(field=>field.id));
+ next.hardware??=[];
  const linkIds=next.fields.filter(field=>field.name.trim().toLowerCase()==='link'||field.id.trim().toLowerCase()==='link').map(field=>field.id);
  const priority=next.fields.find(field=>field.name.trim().toLowerCase()==='wishlist priority'||field.id.trim().toLowerCase()==='wishlist priority');
  next.fields=next.fields.filter(field=>!retired.has(field.id)).map(field=>field.id===priority?.id?{...field,options:field.options.filter(option=>option.trim().toLowerCase()!=='want soon')}:field);
@@ -36,9 +38,10 @@ export function withCurrentLibraryShape(library:Library):Library{
 export function validate(data:unknown): asserts data is Library {
  if(!data||typeof data!=='object')throw new Error('Invalid library.');
  const d=data as Library;
- if(!Array.isArray(d.fields)||!Array.isArray(d.games)||d.fields.length>100||d.games.length>10000)throw new Error('Invalid library size.');
- if(new Set(d.fields.map(f=>f.id)).size!==d.fields.length||new Set(d.games.map(g=>g.id)).size!==d.games.length)throw new Error('Duplicate identifiers.');
+ if(!Array.isArray(d.fields)||!Array.isArray(d.games)||d.hardware!==undefined&&!Array.isArray(d.hardware)||d.fields.length>100||d.games.length>10000||(d.hardware?.length??0)>1000)throw new Error('Invalid library size.');
+ if(new Set(d.fields.map(f=>f.id)).size!==d.fields.length||new Set(d.games.map(g=>g.id)).size!==d.games.length||new Set((d.hardware??[]).map(h=>h.id)).size!==(d.hardware?.length??0))throw new Error('Duplicate identifiers.');
  for(const f of d.fields){if(!f||typeof f.id!=='string'||!f.id||['__proto__','constructor','prototype'].includes(f.id)||typeof f.name!=='string'||!f.name.trim()||f.name.length>100||!['text','multi_select','number','date','url','checkbox'].includes(f.type)||!Array.isArray(f.options)||f.options.some(o=>typeof o!=='string'||o.length>200))throw new Error('Invalid property.');}
  for(const g of d.games){if(!g||typeof g.id!=='string'||!g.id||!g.values||typeof g.values!=='object'||Array.isArray(g.values))throw new Error('Invalid game.');for(const v of Object.values(g.values)){if(!(typeof v==='string'||typeof v==='number'&&Number.isFinite(v)||typeof v==='boolean'||Array.isArray(v)&&v.every(x=>typeof x==='string')))throw new Error('Invalid game value.');}}
+ for(const h of d.hardware??[]){if(!h||typeof h.id!=='string'||!h.id||typeof h.name!=='string'||!h.name.trim()||h.name.length>200||!['Console','Peripheral'].includes(h.type)||typeof h.manufacturer!=='string'||h.manufacturer.length>200||['model','releaseDate','notes','description','coverUrl'].some(key=>{const value=h[key as keyof Hardware];return value!==undefined&&(typeof value!=='string'||value.length>10000);}))throw new Error('Invalid hardware.');}
  if(JSON.stringify(d).length>1800000)throw new Error('Library exceeds the current storage limit. Download a backup before adding more data.');
 }

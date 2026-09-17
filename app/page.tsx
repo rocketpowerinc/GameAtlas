@@ -1,6 +1,7 @@
 import {esrbOptions,compareEsrb} from '@/lib/esrb';
 import {saveTheme, type Theme} from '@/lib/theme';
 import {CollectionDashboard} from '@/components/collection-dashboard';
+import {HardwareCollection} from '@/components/hardware-collection';
 import {ArtworkSettings} from '@/components/artwork-settings';
 import {DescriptionSettings} from '@/components/description-settings';
 import {BrandMark,BrandName} from '@/components/brand';
@@ -168,6 +169,7 @@ export default function Home() {
     [editingGame,setEditingGame] = useState(false),
     [settings, setSettings] = useState(false),
     [dashboard,setDashboard] = useState(false),
+    [hardware,setHardware] = useState(false),
     [dashboardFilter,setDashboardFilter] = useState<{label:string;ids:string[]}|null>(null),
     [artworkOpen,setArtworkOpen] = useState(false),
     [descriptionsOpen,setDescriptionsOpen] = useState(false),
@@ -566,7 +568,8 @@ export default function Home() {
         </div>
         <div className="header-actions">
           <button className="quiet theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>{theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>}<span>{theme === 'dark' ? 'Light' : 'Dark'}</span></button>
-          <button className="quiet" aria-pressed={dashboard} onClick={()=>setDashboard(!dashboard)}>{dashboard?'Back to library':'Dashboard'}</button>
+          <button className="quiet" aria-pressed={dashboard} onClick={()=>{setDashboard(!dashboard);setHardware(false);}}>{dashboard?'Back to library':'Dashboard'}</button>
+          <button className="quiet" aria-pressed={hardware} onClick={()=>{setHardware(!hardware);setDashboard(false);}}>{hardware?'Back to games':'Hardware'}</button>
           <button
             className="quiet icon-button"
             aria-label="Settings"
@@ -583,7 +586,7 @@ export default function Home() {
           </button>
         </div>
       </header>
-      {dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
+      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
         <div className="collection-heading">
           <div>
             <p className="eyebrow">YOUR COLLECTION, ALL TOGETHER</p>

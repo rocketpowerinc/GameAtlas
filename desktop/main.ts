@@ -96,6 +96,16 @@ app.whenReady().then(async()=>{
    await scan.apply(id,url);pruneUnusedArtwork(store.read(),store.directory);preferences.run(store,'change');if(preferences.error)throw Error(preferences.error);return url;
   }finally{backupBusy=false;}
  });
+ ipcMain.handle('choose-hardware-artwork-file',async event=>{
+  trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
+  const selected=await dialog.showOpenDialog(window,{title:'Choose hardware artwork',properties:['openFile'],filters:[{name:'Images',extensions:['png','jpg','jpeg','webp','gif','avif']}]});
+  if(selected.canceled||!selected.filePaths[0])return false;
+  const path=selected.filePaths[0];if(statSync(path).size>10_000_000)throw Error('Choose an image smaller than 10 MB.');
+  const image=nativeImage.createFromBuffer(readFileSync(path));if(image.isEmpty())throw Error('This file is not a readable image.');
+  const size=image.getSize(),bytes=(Math.max(size.width,size.height)>1400?image.resize(size.width>=size.height?{width:1400}:{height:1400}):image).toPNG();
+  const url='https://local-art.gameatlas.invalid/'+createHash('sha256').update(bytes).digest('hex'),key=createHash('sha256').update(url).digest('hex'),destination=join(store.directory,'artwork',key);
+  writeFileSync(destination+'.type','image/png');writeFileSync(destination+'.tmp',bytes);renameSync(destination+'.tmp',destination);return url;
+ });
  ipcMain.handle('description-status',event=>{trusted(event);return descriptions.missing();});
  ipcMain.handle('apply-description',async(event,id,description)=>{
   trusted(event);if(backupBusy)throw Error('Wait for the current operation to finish.');
@@ -153,11 +163,11 @@ app.whenReady().then(async()=>{
    await Promise.all(Array.from({length:Math.min(4,pending.length)},async()=>{while(cursor<pending.length){const url=pending[cursor++];try{await artwork(url);}catch{}}}));
    const missing=missingArtwork(store.read(),store.directory);
    if(missing.length){
-    const choice=await dialog.showMessageBox(window,{type:'warning',title:'Some thumbnails are unavailable',message:missing.length+' artwork links could not be downloaded.',detail:'All game properties and descriptions will be included. These missing image files cannot be restored offline from this backup. You can cancel and retry when the sources are available.',buttons:['Cancel','Save with missing thumbnails'],defaultId:0,cancelId:0});
+    const choice=await dialog.showMessageBox(window,{type:'warning',title:'Some thumbnails are unavailable',message:missing.length+' artwork links could not be downloaded.',detail:'All collection records and descriptions will be included. These missing image files cannot be restored offline from this backup. You can cancel and retry when the sources are available.',buttons:['Cancel','Save with missing thumbnails'],defaultId:0,cancelId:0});
     if(choice.response!==1)return '';
    }
    pruneUnusedArtwork(store.read(),store.directory);const result=writeBackup(store.db,store.directory,filePath);
-   return 'Backup saved: '+result.games+' games and '+result.images+' image files.'+(result.missing.length?' '+result.missing.length+' thumbnails are missing.':' All linked thumbnails are included.');
+   return 'Backup saved: '+result.hardware+' hardware items, '+result.games+' games and '+result.images+' image files.'+(result.missing.length?' '+result.missing.length+' thumbnails are missing.':' All linked thumbnails are included.');
   }finally{backupBusy=false;}
  });
  ipcMain.handle('export-collection-pdf',async (event,requestedScope:unknown)=>{
@@ -169,7 +179,7 @@ app.whenReady().then(async()=>{
   if(!filePath)return '';
   const destination=filePath.toLowerCase().endsWith('.pdf')?filePath:filePath+'.pdf';
   backupBusy=true;
-  try{const result=await exportCollectionPdf(catalog,store.directory,destination,physical?'Physical Collection Catalog':'Entire Library Catalog');return `${physical?'Physical collection':'Entire library'} PDF saved with ${result.games} games.`;}
+  try{const result=await exportCollectionPdf(catalog,store.directory,destination,physical?'Physical Collection Catalog':'Entire Library Catalog');return `${physical?'Physical collection':'Entire library'} PDF saved with ${result.hardware} hardware items and ${result.games} games.`;}
   finally{backupBusy=false;}
  });
  ipcMain.handle('restore-backup',async event=>{
@@ -179,7 +189,7 @@ app.whenReady().then(async()=>{
    if(canceled)return false;
    const backup=readBackup(filePaths[0]);
    const detail=backup.summary.legacy?'This older JSON backup contains no image files. Your existing cached images will be kept.':backup.summary.images+' image files will be restored.'+(backup.summary.missing.length?' '+backup.summary.missing.length+' linked thumbnails are missing from this backup.':'');
-   const choice=await dialog.showMessageBox(window,{type:'warning',title:'Restore GameAtlas backup',message:'Replace your collection with '+backup.summary.games+' games?',detail:detail+' A complete safety backup of the current collection and its linked artwork will be saved first.',buttons:['Cancel','Restore backup'],defaultId:0,cancelId:0});
+   const choice=await dialog.showMessageBox(window,{type:'warning',title:'Restore GameAtlas backup',message:'Replace your collection with '+backup.summary.games+' games and '+backup.summary.hardware+' hardware items?',detail:detail+' A complete safety backup of the current collection and its linked artwork will be saved first.',buttons:['Cancel','Restore backup'],defaultId:0,cancelId:0});
    if(choice.response!==1)return false;
    restoring=true;await Promise.allSettled([...inflight.values()]);
    store.restore(backup);pruneUnusedArtwork(store.read(),store.directory);
@@ -193,7 +203,7 @@ app.whenReady().then(async()=>{
    const choice=await dialog.showMessageBox(window,{type:'warning',message:'Start empty instead of keeping the imported library?',buttons:['Cancel','Start empty'],defaultId:0,cancelId:0});if(choice.response!==1)return false;
    backupBusy=true;restoring=true;
    try{await Promise.allSettled([...inflight.values()]);const library=JSON.parse(readFileSync(join(__dirname,'../data/library.json'),'utf8'));
-    store.restore({library,artwork:[],summary:{games:0,images:0,missing:[],createdAt:'',legacy:false}});
+    store.restore({library,artwork:[],summary:{games:0,hardware:0,images:0,missing:[],createdAt:'',legacy:false}});
    }finally{restoring=false;backupBusy=false;}
   }
   return true;
@@ -225,7 +235,7 @@ app.whenReady().then(async()=>{
  preferences.run(store,'startup');
  const schedule=setInterval(()=>{if(!backupBusy)preferences.run(store,'timer');},60000);schedule.unref();
  // Warm the cache gradually; failures are retried when a game is displayed or on the next launch.
- if(!smoke){void(async()=>{for(const game of store.read().games){if(game.lookup?.coverUrl)try{await artwork(game.lookup.coverUrl);}catch{}}})();}
+ if(!smoke){void(async()=>{const library=store.read();for(const url of [...library.games.map(game=>game.lookup?.coverUrl),...(library.hardware??[]).map(item=>item.coverUrl)]){if(url)try{await artwork(url);}catch{}}})();}
  if(smoke){
   try{
    await new Promise(r=>setTimeout(r,1500));
@@ -243,7 +253,7 @@ app.whenReady().then(async()=>{
     const setter=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;setter.call(select,'manual');select.dispatchEvent(new Event('change',{bubbles:true}));await wait();
     [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Finish setup')).click();await wait();
     if(!(await window.gameAtlas.getSettings()).setupComplete)throw Error('Setup not saved');
-    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Must Play'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5,'Release Date':'2024-01-02',Notes:'Remember this test note.'},lookup:{description:'No description has been added for this game yet.',sources:[{name:'IGN',url:'https://www.ign.com/games/test-game'},{name:'Steam',url:'https://store.steampowered.com/app/2'}]}}]});
+    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,hardware:[{id:'hardware-test',name:'Test Console',type:'Console',manufacturer:'Test Maker',model:'Special Edition',releaseDate:'2020-01-01',notes:'Keep the original box.',description:'A test console description.'}],games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Must Play'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5,'Release Date':'2024-01-02',Notes:'Remember this test note.'},lookup:{description:'No description has been added for this game yet.',sources:[{name:'IGN',url:'https://www.ign.com/games/test-game'},{name:'Steam',url:'https://store.steampowered.com/app/2'}]}}]});
     if(!saved.ok)throw Error('Save failed');
     const rejected=await window.gameAtlas.request('/api/library','PUT',{...saved.data,fields:[]});
     if(rejected.ok)throw Error('Property editing was accepted');
@@ -262,6 +272,14 @@ app.whenReady().then(async()=>{
     document.querySelector('[aria-label="Owned Physical: 1 games"]').click();await wait();
     if(!document.querySelector('.dashboard-filter')||document.querySelectorAll('.game-card').length!==1)throw Error('Dashboard drill-down failed');
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Show all games').click();
+    [...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Hardware').click();await wait();
+    if(!document.querySelector('.hardware-collection')||document.querySelectorAll('.hardware-card').length!==1||!document.body.textContent.includes('Test Console'))throw Error('Hardware collection missing');
+    document.querySelector('.hardware-card').click();await wait();
+    if(!document.querySelector('.hardware-page')||!document.body.textContent.includes('Keep the original box.')||!document.body.textContent.includes('Released 2020-01-01'))throw Error('Hardware detail page missing');
+    document.querySelector('.game-page-edit-top').click();await wait();
+    if(!document.querySelector('.hardware-editor')||!document.body.textContent.includes('Upload artwork file'))throw Error('Hardware editor missing');
+    document.querySelector('[data-slot="dialog-close"]').click();await wait();
+    [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Back to games')).click();await wait();
     document.querySelector('[aria-label="Settings"]').click();await wait();
     if(document.body.textContent.includes('Properties & backups')||document.body.textContent.includes('Add property'))throw Error('Property controls remain');
    })()`);
@@ -324,7 +342,7 @@ app.whenReady().then(async()=>{
    if(store.read().games.length!==1)throw Error('Restore failed');
    if(store.read().games[0].lookup?.coverUrl!==selectedArt||!(await artwork(selectedArt)).ok)throw Error('Selected artwork did not survive full backup/restore');
    const pdfMessage=await window.webContents.executeJavaScript("window.gameAtlas.exportCollectionPdf('all')");
-   if(!pdfMessage.includes('1 games')||!existsSync(pdfPath)||readFileSync(pdfPath).subarray(0,5).toString()!=='%PDF-'||statSync(pdfPath).size<10000)throw Error('Collection PDF export failed');
+   if(!pdfMessage.includes('1 hardware items')||!pdfMessage.includes('1 games')||!existsSync(pdfPath)||readFileSync(pdfPath).subarray(0,5).toString()!=='%PDF-'||statSync(pdfPath).size<10000)throw Error('Collection PDF export failed');
    const physicalPdfMessage=await window.webContents.executeJavaScript("window.gameAtlas.exportCollectionPdf('physical')");
    if(!physicalPdfMessage.includes('Physical collection')||!physicalPdfMessage.includes('1 games')||readFileSync(pdfPath).subarray(0,5).toString()!=='%PDF-')throw Error('Physical collection PDF export failed');
    // Exercise import from the first-run wizard separately from the start-empty path.
