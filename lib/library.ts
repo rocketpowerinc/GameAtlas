@@ -3,7 +3,6 @@ export type Field = {id:string;name:string;type:'text'|'multi_select'|'number'|'
 export type Game = {id:string;values:Record<string,string|number|boolean|string[]>;esrb?:{url:string;title:string;platforms:string[];checkedAt:string};sourceUrl?:string;lookup?:{sources:{name:string;url:string}[];scoreSource?:string;releaseNote?:string;coverUrl?:string;description?:string}};
 export type Hardware = {id:string;name:string;type:'Console'|'Peripheral';manufacturer:string;model?:string;releaseDate?:string;notes?:string;description?:string;coverUrl?:string};
 export type Library = {fields:Field[];games:Game[];hardware?:Hardware[];revision:number};
-export const gameBadgeTags=['Favorite','Hidden Gems','Critically Acclaimed','Play with Kids'];
 export const display = (v:unknown):string => Array.isArray(v)?v.join(', '):v===undefined||v===null?'':String(v);
 export function dedupeSources(sources:NonNullable<Game['lookup']>['sources']|undefined){
  const byName=new Map<string,{name:string;url:string}>();
@@ -25,8 +24,7 @@ export function withCurrentLibraryShape(library:Library):Library{
  next.hardware??=[];
  const linkIds=next.fields.filter(field=>field.name.trim().toLowerCase()==='link'||field.id.trim().toLowerCase()==='link').map(field=>field.id);
  const priority=next.fields.find(field=>field.name.trim().toLowerCase()==='wishlist priority'||field.id.trim().toLowerCase()==='wishlist priority');
- const tags=next.fields.find(field=>field.name.trim().toLowerCase()==='tags'||field.id.trim().toLowerCase()==='tags');
- next.fields=next.fields.filter(field=>!retired.has(field.id)).map(field=>field.id===priority?.id?{...field,options:field.options.filter(option=>option.trim().toLowerCase()!=='want soon')}:field.id===tags?.id?{...field,options:[...new Set([...field.options,...gameBadgeTags])]}:field);
+ next.fields=next.fields.filter(field=>!retired.has(field.id)).map(field=>field.id===priority?.id?{...field,options:field.options.filter(option=>option.trim().toLowerCase()!=='want soon')}:field);
  for(const game of next.games){
   for(const id of linkIds){const url=typeof game.values[id]==='string'?game.values[id].trim():'';if(/^https?:\/\//i.test(url)){const sources=game.lookup?.sources??[];if(!sources.some(source=>source.url===url))game.lookup={...game.lookup,sources:[...sources,{name:sourceName(url),url}]};}}
   if(game.lookup)game.lookup={...game.lookup,sources:dedupeSources(game.lookup.sources.map(source=>sourceName(source.url)==='PriceCharting'?{...source,name:'PriceCharting'}:source))};

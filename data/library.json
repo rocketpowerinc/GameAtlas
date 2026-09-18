@@ -143,11 +143,11 @@
       ]
     },
     {
-      "id": "Tags",
-      "name": "Tags",
+      "id": "Badges",
+      "name": "Badges",
       "type": "multi_select",
       "options": [
-        "Hidden Gems",
+        "Hidden Gem",
         "Favorite",
         "Critically Acclaimed",
         "Play with Kids"

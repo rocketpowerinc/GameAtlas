@@ -1,15 +1,15 @@
 import type {Library,Game} from './library';
 export function collectionStats(library:Library,now=new Date()){
  const field=(name:string)=>library.fields.find(f=>f.name.toLowerCase()===name.toLowerCase())?.id||name;
- const own=field('Ownership'),status=field('Status'),tagField=field('Tags'),platform=field('Platform'),genre=field('Genre'),score=field('Score'),title=field('Title');
+ const own=field('Ownership'),status=field('Status'),platform=field('Platform'),genre=field('Genre'),score=field('Score'),title=field('Title');
  const tags=(g:Game,id:string)=>[...new Set((Array.isArray(g.values[id])?g.values[id]:typeof g.values[id]==='string'?[g.values[id]]:[] as string[]).map(String).map(s=>s.trim()).filter(Boolean))];
  const has=(g:Game,id:string,value:string)=>tags(g,id).some(t=>t.toLowerCase()===value.toLowerCase());
  const owned=library.games.filter(g=>has(g,own,'Physical')||has(g,own,'Digital'));
  const completed=owned.filter(g=>has(g,status,'Complete'));
  const backlog=owned.filter(g=>(has(g,status,'Must Play')||has(g,status,'Backlog'))&&!has(g,status,'Complete')&&!has(g,status,'Currently Playing'));
  const playing=owned.filter(g=>has(g,status,'Currently Playing'));
- const mustPlay=owned.filter(g=>has(g,status,'Must Play')||has(g,tagField,'Must Play'));
- const replay=owned.filter(g=>has(g,status,'Replay')||has(g,tagField,'Replay'));
+ const mustPlay=owned.filter(g=>has(g,status,'Must Play'));
+ const replay=owned.filter(g=>has(g,status,'Replay'));
  const unspecified=owned.filter(g=>!tags(g,status).length);
  const wishlist=library.games.filter(g=>has(g,own,'Wish List'));
  const dateField=field('Release Date');

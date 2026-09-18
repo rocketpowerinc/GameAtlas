@@ -21,9 +21,6 @@ assert.equal(next.games[0].lookup.sources.find(source=>source.url.includes('pric
 assert.equal(next.games[0].lookup.description,"It's fun & polished.");
 assert.equal(original.fields.length,4,'Migration must not mutate its input');
 assert.deepEqual(withCurrentLibraryShape(next),next,'Migration must be safe to run more than once');
-const badged=withCurrentLibraryShape({revision:1,fields:[{id:'Tags',name:'Tags',type:'multi_select',options:['Favorite','Hidden Gems','Critically Acclaimed']}],games:[]});
-assert.deepEqual(badged.fields[0].options,['Favorite','Hidden Gems','Critically Acclaimed','Play with Kids']);
-assert.deepEqual(withCurrentLibraryShape(badged),badged,'Badge migration must be safe to run more than once');
 assert.equal(preferredSourceUrl([{name:'Steam',url:'steam'},{name:'HowLongToBeat',url:'hltb'},{name:'Wikipedia',url:'wiki'},{name:'YouTube',url:'youtube'},{name:'IGN',url:'ign'}]),'ign');
 assert.equal(preferredSourceUrl([{name:'Steam',url:'steam'},{name:'HowLongToBeat',url:'hltb'},{name:'Wikipedia',url:'wiki'},{name:'YouTube',url:'youtube'}]),'youtube');
 assert.equal(preferredSourceUrl([{name:'Steam',url:'steam'},{name:'HowLongToBeat',url:'hltb'}]),'hltb');

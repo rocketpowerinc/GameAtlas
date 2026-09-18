@@ -430,7 +430,7 @@ h2 {
 }
 .filter-row {
   display: grid;
-  grid-template-columns: repeat(5,minmax(130px,1fr));
+  grid-template-columns: repeat(6,minmax(120px,1fr));
   align-items: center;
   gap: 14px;
   margin: 0;

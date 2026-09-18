@@ -86,14 +86,14 @@ const contains = (g: Game, key: string, value: string) =>
     ? (g.values[key] as string[]).includes(value)
     : g.values[key] === value;
 const badgeDefinitions = [
-  {value:'Favorite',aliases:['Favorite'],label:'Favorite',description:'One of your personal favorite games.',tone:'favorite',Icon:Heart},
-  {value:'Hidden Gems',aliases:['Hidden Gems','Hidden Gem'],label:'Hidden Gem',description:'An overlooked game you strongly recommend.',tone:'hidden-gem',Icon:Gem},
-  {value:'Critically Acclaimed',aliases:['Critically Acclaimed'],label:'Critically Acclaimed',description:'Widely praised by professional reviewers.',tone:'acclaimed',Icon:Trophy},
-  {value:'Play with Kids',aliases:['Play with Kids'],label:'Play with Kids',description:'A good game to play together with children.',tone:'kids',Icon:UsersRound},
+  {value:'Favorite',label:'Favorite',description:'One of your personal favorite games.',tone:'favorite',Icon:Heart},
+  {value:'Hidden Gem',label:'Hidden Gem',description:'An overlooked game you strongly recommend.',tone:'hidden-gem',Icon:Gem},
+  {value:'Critically Acclaimed',label:'Critically Acclaimed',description:'Widely praised by professional reviewers.',tone:'acclaimed',Icon:Trophy},
+  {value:'Play with Kids',label:'Play with Kids',description:'A good game to play together with children.',tone:'kids',Icon:UsersRound},
 ] as const;
-const gameTags=(game:Game)=>Array.isArray(game.values.Tags)?game.values.Tags as string[]:[];
-const badgesFor=(game:Game)=>badgeDefinitions.filter(badge=>badge.aliases.some(value=>gameTags(game).includes(value)));
-const badgeValues=new Set<string>(badgeDefinitions.flatMap(badge=>[...badge.aliases]));
+const gameBadges=(game:Game)=>Array.isArray(game.values.Badges)?game.values.Badges as string[]:[];
+const badgesFor=(game:Game)=>badgeDefinitions.filter(badge=>gameBadges(game).includes(badge.value));
+const badgeValues=new Set<string>(badgeDefinitions.map(badge=>badge.value));
 function CardBadges({game}:{game:Game}){
   const badges=badgesFor(game);
   return <div className="game-card-badges" aria-label={badges.length?'Game badges':undefined} aria-hidden={badges.length?undefined:true}>{badges.map(({value,label,tone,Icon})=><span key={value} className={`game-badge-icon game-badge-${tone}`} title={label} aria-label={label}><Icon size={14} aria-hidden="true"/></span>)}</div>;
@@ -184,6 +184,7 @@ export default function Home() {
     [platform, setPlatform] = useState('All platforms'),
     [genre, setGenre] = useState('All genres'),
     [status, setStatus] = useState('All statuses'),
+    [badge, setBadge] = useState('All badges'),
     [esrb, setEsrb] = useState('All ESRB ratings'),
     [sort, setSort] = useState('Title A–Z'),
     [cardView, setCardView] = useState<'standard'|'compact'>(()=>{try{return localStorage.getItem('gameatlas-card-view')==='standard'?'standard':'compact';}catch{return 'compact';}}),
@@ -524,7 +525,7 @@ export default function Home() {
               setView('All games');
               setPlatform('All platforms');
               setGenre('All genres');
-              setStatus('All statuses');setEsrb('All ESRB ratings');
+              setStatus('All statuses');setBadge('All badges');setEsrb('All ESRB ratings');
               return { query: q };
             },
           },
@@ -561,6 +562,7 @@ export default function Home() {
               contains(g, 'Platform', platform)) &&
             (genre === 'All genres' || contains(g, 'Genre', genre)) &&
             (status === 'All statuses' || contains(g, 'Status', status)) &&
+            (badge === 'All badges' || contains(g, 'Badges', badge)) &&
             (esrb === 'All ESRB ratings' || (g.values.ESRB || 'Unknown') === esrb) &&
             Object.values(g.values).some((v) =>
               display(v).toLowerCase().includes(query.toLowerCase()),
@@ -574,10 +576,10 @@ export default function Home() {
               : title(a, fields).localeCompare(title(b, fields)) *
                 (sort === 'Title Z–A' ? -1 : 1),
         ),
-    [data, view, query, platform, genre, status, esrb, sort,dashboardFilter],
+    [data, view, query, platform, genre, status, badge, esrb, sort,dashboardFilter],
   );
   const gamePageDetailFields=draft?fields.filter(field=>
-    !['Title','Studio','Release Date','Platform','Ownership','Genre','Status','Tags','Score','ESRB','Link','Notes','Wishlist Priority'].includes(field.id)&&
+    !['Title','Studio','Release Date','Platform','Ownership','Genre','Status','Badges','Score','ESRB','Link','Notes','Wishlist Priority'].includes(field.id)&&
     display(draft.values[field.id]).trim()!==''
   ):[];
   const gamePageSources=draft?orderedSources(draft.lookup?.sources).filter(source=>safeLink(source.url)):[];
@@ -607,7 +609,7 @@ export default function Home() {
           </button>
         </div>
       </header>
-      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
+      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setBadge('All badges');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
         <div className="collection-heading">
           <div>
             <p className="eyebrow">YOUR COLLECTION, ALL TOGETHER</p>
@@ -707,6 +709,7 @@ export default function Home() {
             options={['All statuses', ...options('Status')]}
             label="Filter status"
           />
+          <Pick value={badge} onChange={setBadge} options={['All badges',...badgeDefinitions.map(item=>item.value)]} label="Filter badge"/>
           <Pick value={esrb} onChange={setEsrb} options={['All ESRB ratings',...esrbOptions]} label="Filter by ESRB rating"/>
           <Pick
             value={sort}
@@ -730,14 +733,14 @@ export default function Home() {
             {(query ||
               platform !== 'All platforms' ||
               genre !== 'All genres' ||
-              status !== 'All statuses' || esrb !== 'All ESRB ratings') && (
+              status !== 'All statuses' || badge !== 'All badges' || esrb !== 'All ESRB ratings') && (
               <button
                 className="text-button"
                 onClick={() => {
                   setQuery('');
                   setPlatform('All platforms');
                   setGenre('All genres');
-                  setStatus('All statuses');setEsrb('All ESRB ratings');
+                  setStatus('All statuses');setBadge('All badges');setEsrb('All ESRB ratings');
                 }}
               >
                 Clear filters
@@ -763,7 +766,8 @@ export default function Home() {
               {query ||
               platform !== 'All platforms' ||
               genre !== 'All genres' ||
-              status !== 'All statuses'
+              status !== 'All statuses' ||
+              badge !== 'All badges'
                 ? 'Try a different search or clear your filters.'
                 : 'Add a game to start this part of your collection.'}
             </EmptyDescription>
@@ -862,7 +866,7 @@ export default function Home() {
                   {display(draft.values.Ownership)&&<span>{display(draft.values.Ownership)}</span>}
                   {display(draft.values.Genre)&&<span>{display(draft.values.Genre)}</span>}
                   {display(draft.values.Status)&&<span>{display(draft.values.Status)}</span>}
-                  {gameTags(draft).filter(tag=>!badgeValues.has(tag)).map(tag=><span key={tag}>{tag}</span>)}
+                  {gameBadges(draft).filter(tag=>!badgeValues.has(tag)).map(tag=><span key={tag}>{tag}</span>)}
                   {display(draft.values['Wishlist Priority'])&&<span>Priority: {display(draft.values['Wishlist Priority'])}</span>}
                   {draft.values.Score!==''&&draft.values.Score!==undefined&&<span>Score {display(draft.values.Score)} / 10</span>}
                   <span>ESRB {display(draft.values.ESRB)||'Unknown'}</span>
@@ -1034,10 +1038,10 @@ export default function Home() {
                     key={f.id}
                   >
                     <label htmlFor={`edit-${f.id}`}>{f.name}</label>
-                    {f.id === 'ESRB' ? (<><select id="edit-ESRB" value={display(draft.values.ESRB)||'Unknown'} onChange={e=>setDraft({...draft,esrb:undefined,values:{...draft.values,ESRB:e.target.value}})}>{esrbOptions.map(r=><option key={r}>{r}</option>)}</select><small className="muted">Unknown means not verified. Pre-ESRB release predates the rating system; later editions may be rated.</small>{draft.esrb&&<a className="table-link" href={safeLink(draft.esrb.url)} target="_blank" rel="noreferrer">ESRB listing · {draft.esrb.platforms.join(', ')}</a>}</>) : f.id === 'Tags' ? (
-                      <div className="game-badge-picker" role="group" aria-label="Game badges">{badgeDefinitions.map(({value,aliases,label,description,tone,Icon})=>{
-                        const values=gameTags(draft),checked=aliases.some(alias=>values.includes(alias)),withoutBadge=values.filter(tag=>!aliases.some(alias=>alias===tag));
-                        return <label className={`game-badge-choice game-badge-${tone} ${checked?'selected':''}`} key={value}><Checkbox checked={checked} onCheckedChange={selected=>setDraft({...draft,values:{...draft.values,Tags:selected?[...withoutBadge,value]:withoutBadge}})}/><span className="game-badge-icon"><Icon size={18}/></span><span><strong>{label}</strong><small>{description}</small></span></label>;
+                    {f.id === 'ESRB' ? (<><select id="edit-ESRB" value={display(draft.values.ESRB)||'Unknown'} onChange={e=>setDraft({...draft,esrb:undefined,values:{...draft.values,ESRB:e.target.value}})}>{esrbOptions.map(r=><option key={r}>{r}</option>)}</select><small className="muted">Unknown means not verified. Pre-ESRB release predates the rating system; later editions may be rated.</small>{draft.esrb&&<a className="table-link" href={safeLink(draft.esrb.url)} target="_blank" rel="noreferrer">ESRB listing · {draft.esrb.platforms.join(', ')}</a>}</>) : f.id === 'Badges' ? (
+                      <div className="game-badge-picker" role="group" aria-label="Game badges">{badgeDefinitions.map(({value,label,description,tone,Icon})=>{
+                        const values=gameBadges(draft),checked=values.includes(value);
+                        return <label className={`game-badge-choice game-badge-${tone} ${checked?'selected':''}`} key={value}><Checkbox checked={checked} onCheckedChange={selected=>setDraft({...draft,values:{...draft.values,Badges:selected?[...values,value]:values.filter(badge=>badge!==value)}})}/><span className="game-badge-icon"><Icon size={18}/></span><span><strong>{label}</strong><small>{description}</small></span></label>;
                       })}</div>
                     ) : f.type === 'multi_select' ? (
                       <div className="choices" role="group" aria-label={f.name}>

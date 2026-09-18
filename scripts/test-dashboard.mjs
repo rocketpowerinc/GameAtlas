@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const {collectionStats}=createRequire(import.meta.url)('../desktop-dist/collection-stats.cjs');
-const fields=['Title','Ownership','Status','Tags','Platform','Genre','Score','Studio','Wishlist Priority','Release Date'].map(name=>({id:'field-'+name,name,type:'text',options:[]}));
+const fields=['Title','Ownership','Status','Badges','Platform','Genre','Score','Studio','Wishlist Priority','Release Date'].map(name=>({id:'field-'+name,name,type:'text',options:[]}));
 const game=(id,values)=>({id,values:Object.fromEntries(Object.entries(values).map(([k,v])=>['field-'+k,v]))});
 const games=[
  game('both',{Title:'Both formats',Ownership:['Physical','Digital'],Status:['Complete','Backlog'],Platform:['PC','PC','Switch'],Genre:['RPG'],Score:0}),
@@ -32,7 +32,7 @@ const insights=collectionStats({fields,revision:1,games:[
  game('c',{Title:'Gamma',Ownership:['Physical'],Status:['Currently Playing','Must Play'],Studio:'Studio Two',Score:10}),
  game('d',{Title:'Delta',Ownership:['Digital'],Status:['Must Play'],Studio:'Studio One',Score:''}),
  game('zero',{Title:'Zero',Ownership:['Digital'],Status:['Must Play'],Studio:'Studio Two',Score:0}),
- game('replay-tag',{Title:'Again',Ownership:['Physical'],Tags:['Replay'],Studio:'Studio Two',Score:8}),
+ game('replay-tag',{Title:'Again',Ownership:['Physical'],Status:['Replay'],Studio:'Studio Two',Score:8}),
  game('w1',{Title:'Future',Ownership:['Wish List'],'Wishlist Priority':['Must have','Someday'],'Release Date':'2026-09-13',Studio:'Studio One',Score:10}),
  game('w2',{Title:'Today',Ownership:['Wish List'],'Release Date':'2026-09-12'}),
  game('w3',{Title:'Unknown',Ownership:['Wish List'],'Release Date':'2026-02-30'}),
