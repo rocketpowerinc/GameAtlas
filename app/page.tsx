@@ -37,6 +37,9 @@ import {
   Video,
   LayoutGrid,
   Grid3X3,
+  Gem,
+  Trophy,
+  UsersRound,
 } from 'lucide-react';
 import {
   Dialog,
@@ -82,6 +85,19 @@ const contains = (g: Game, key: string, value: string) =>
   Array.isArray(g.values[key])
     ? (g.values[key] as string[]).includes(value)
     : g.values[key] === value;
+const badgeDefinitions = [
+  {value:'Favorite',aliases:['Favorite'],label:'Favorite',description:'One of your personal favorite games.',tone:'favorite',Icon:Heart},
+  {value:'Hidden Gems',aliases:['Hidden Gems','Hidden Gem'],label:'Hidden Gem',description:'An overlooked game you strongly recommend.',tone:'hidden-gem',Icon:Gem},
+  {value:'Critically Acclaimed',aliases:['Critically Acclaimed'],label:'Critically Acclaimed',description:'Widely praised by professional reviewers.',tone:'acclaimed',Icon:Trophy},
+  {value:'Play with Kids',aliases:['Play with Kids'],label:'Play with Kids',description:'A good game to play together with children.',tone:'kids',Icon:UsersRound},
+] as const;
+const gameTags=(game:Game)=>Array.isArray(game.values.Tags)?game.values.Tags as string[]:[];
+const badgesFor=(game:Game)=>badgeDefinitions.filter(badge=>badge.aliases.some(value=>gameTags(game).includes(value)));
+const badgeValues=new Set<string>(badgeDefinitions.flatMap(badge=>[...badge.aliases]));
+function CardBadges({game}:{game:Game}){
+  const badges=badgesFor(game);
+  return badges.length?<div className="game-card-badges" aria-label="Game badges">{badges.map(({value,label,tone,Icon})=><span key={value} className={`game-badge-icon game-badge-${tone}`} title={label} aria-label={label}><Icon size={14} aria-hidden="true"/></span>)}</div>:null;
+}
 const compareRelease = (a: Game, b: Game, newest: boolean) => {
   const first = display(a.values['Release Date']).trim();
   const second = display(b.values['Release Date']).trim();
@@ -760,7 +776,7 @@ export default function Home() {
             {filtered.slice(0, limit).map((g) => (
               cardView==='compact'?<article className={`game-card game-card-compact ${scoreTone(g.values.Score)}`} key={g.id}>
                 <button className="compact-card-main" onClick={()=>openGame(g)} aria-label={`Open ${title(g,fields)}`}>
-                  <div className="compact-card-art"><GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="card" /></div>
+                  <div className="compact-card-art"><GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="card" /><CardBadges game={g}/></div>
                   <h2>{title(g,fields).replace(/^\*\*|\*\*$/g,'')}</h2>
                 </button>
               </article>:<article className="game-card" key={g.id}>
@@ -778,6 +794,7 @@ export default function Home() {
                     </div>
                     <GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="card" />
                     <span>{display(g.values.Genre) || 'GAME COLLECTION'}</span>
+                    <CardBadges game={g}/>
                   </div>
                   <div className="game-info">
                     <h2>{title(g, fields).replace(/^\*\*|\*\*$/g, '')}</h2>
@@ -844,11 +861,12 @@ export default function Home() {
                   {display(draft.values.Ownership)&&<span>{display(draft.values.Ownership)}</span>}
                   {display(draft.values.Genre)&&<span>{display(draft.values.Genre)}</span>}
                   {display(draft.values.Status)&&<span>{display(draft.values.Status)}</span>}
-                  {Array.isArray(draft.values.Tags)&&(draft.values.Tags as string[]).map(tag=><span key={tag}>{tag}</span>)}
+                  {gameTags(draft).filter(tag=>!badgeValues.has(tag)).map(tag=><span key={tag}>{tag}</span>)}
                   {display(draft.values['Wishlist Priority'])&&<span>Priority: {display(draft.values['Wishlist Priority'])}</span>}
                   {draft.values.Score!==''&&draft.values.Score!==undefined&&<span>Score {display(draft.values.Score)} / 10</span>}
                   <span>ESRB {display(draft.values.ESRB)||'Unknown'}</span>
                 </div>
+                {!!badgesFor(draft).length&&<div className="game-page-badges" aria-label="Game badges">{badgesFor(draft).map(({value,label,description,tone,Icon})=><div key={value} className={`game-page-badge game-badge-${tone}`}><span className="game-badge-icon" aria-hidden="true"><Icon size={18}/></span><span><strong>{label}</strong><small>{description}</small></span></div>)}</div>}
                 {(gamePageSources.length>1||gamePageSources.some(source=>source.name.toLowerCase()==='youtube'))&&<div className="game-page-source-links"><small>Sources</small>{gamePageSources.map(source=><a key={source.url} href={safeLink(source.url)} target="_blank" rel="noopener noreferrer">{source.name} <ArrowUpRight size={13}/></a>)}</div>}
               </div>
             </div>
@@ -1015,7 +1033,12 @@ export default function Home() {
                     key={f.id}
                   >
                     <label htmlFor={`edit-${f.id}`}>{f.name}</label>
-                    {f.id === 'ESRB' ? (<><select id="edit-ESRB" value={display(draft.values.ESRB)||'Unknown'} onChange={e=>setDraft({...draft,esrb:undefined,values:{...draft.values,ESRB:e.target.value}})}>{esrbOptions.map(r=><option key={r}>{r}</option>)}</select><small className="muted">Unknown means not verified. Pre-ESRB release predates the rating system; later editions may be rated.</small>{draft.esrb&&<a className="table-link" href={safeLink(draft.esrb.url)} target="_blank" rel="noreferrer">ESRB listing · {draft.esrb.platforms.join(', ')}</a>}</>) : f.type === 'multi_select' ? (
+                    {f.id === 'ESRB' ? (<><select id="edit-ESRB" value={display(draft.values.ESRB)||'Unknown'} onChange={e=>setDraft({...draft,esrb:undefined,values:{...draft.values,ESRB:e.target.value}})}>{esrbOptions.map(r=><option key={r}>{r}</option>)}</select><small className="muted">Unknown means not verified. Pre-ESRB release predates the rating system; later editions may be rated.</small>{draft.esrb&&<a className="table-link" href={safeLink(draft.esrb.url)} target="_blank" rel="noreferrer">ESRB listing · {draft.esrb.platforms.join(', ')}</a>}</>) : f.id === 'Tags' ? (
+                      <div className="game-badge-picker" role="group" aria-label="Game badges">{badgeDefinitions.map(({value,aliases,label,description,tone,Icon})=>{
+                        const values=gameTags(draft),checked=aliases.some(alias=>values.includes(alias)),withoutBadge=values.filter(tag=>!aliases.some(alias=>alias===tag));
+                        return <label className={`game-badge-choice game-badge-${tone} ${checked?'selected':''}`} key={value}><Checkbox checked={checked} onCheckedChange={selected=>setDraft({...draft,values:{...draft.values,Tags:selected?[...withoutBadge,value]:withoutBadge}})}/><span className="game-badge-icon"><Icon size={18}/></span><span><strong>{label}</strong><small>{description}</small></span></label>;
+                      })}</div>
+                    ) : f.type === 'multi_select' ? (
                       <div className="choices" role="group" aria-label={f.name}>
                         {Array.from(
                           new Set([
