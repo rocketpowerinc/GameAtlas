@@ -259,9 +259,10 @@ app.whenReady().then(async()=>{
     if(rejected.ok)throw Error('Property editing was accepted');
     window.dispatchEvent(new Event('library-updated'));await wait();
     const compact=document.querySelector('.game-card-compact');
-    if(!compact||!compact.classList.contains('score-great')||compact.querySelector('h2')?.textContent!=='Test game'||compact.querySelector('.game-info')||compact.querySelector('.card-bottom')||compact.querySelectorAll('.game-badge-icon').length!==2)throw Error('Compact card is not artwork-and-title only or lost its score colour and badges');
+    if(!compact||!compact.classList.contains('score-great')||compact.querySelector('h2')?.textContent!=='Test game'||compact.querySelector('.game-info')||compact.querySelector('.card-bottom')||compact.querySelectorAll('.game-badge-icon').length!==2||compact.querySelector('.compact-card-art .game-card-badges')||compact.querySelector('.game-card-badges').getBoundingClientRect().top<compact.querySelector('h2').getBoundingClientRect().bottom)throw Error('Compact card is not artwork-and-title only or lost its score colour and bottom badges');
     [...document.querySelectorAll('.card-view-toggle button')].find(b=>b.textContent.includes('Standard')).click();await wait();
-    if(!document.querySelector('.game-card')||!document.querySelector('.game-release-date')?.textContent.includes('2024-01-02'))throw Error('Standard card or release date missing');
+    const standardCard=document.querySelector('.game-card'),standardBadges=standardCard?.querySelector(':scope > .game-card-badges'),standardFooter=standardCard?.querySelector('.card-bottom');
+    if(!standardCard||!document.querySelector('.game-release-date')?.textContent.includes('2024-01-02')||!standardBadges||standardCard.lastElementChild!==standardBadges||standardBadges.getBoundingClientRect().top<standardFooter.getBoundingClientRect().bottom)throw Error('Standard card, release date, or bottom badge row missing');
     if(document.querySelector('.game-link')?.href!=='https://www.ign.com/games/test-game')throw Error('Card shortcut did not prioritize IGN');
     document.querySelector('.game-card-main').click();await wait();
     if(document.querySelectorAll('.game-page-badge').length!==2||!document.querySelector('.game-page-badges')?.textContent.includes('One of your personal favorite games.')||!document.querySelector('.game-page-badges')?.textContent.includes('A good game to play together with children.'))throw Error('Read-only badge explanations missing');

@@ -96,7 +96,7 @@ const badgesFor=(game:Game)=>badgeDefinitions.filter(badge=>badge.aliases.some(v
 const badgeValues=new Set<string>(badgeDefinitions.flatMap(badge=>[...badge.aliases]));
 function CardBadges({game}:{game:Game}){
   const badges=badgesFor(game);
-  return badges.length?<div className="game-card-badges" aria-label="Game badges">{badges.map(({value,label,tone,Icon})=><span key={value} className={`game-badge-icon game-badge-${tone}`} title={label} aria-label={label}><Icon size={14} aria-hidden="true"/></span>)}</div>:null;
+  return <div className="game-card-badges" aria-label={badges.length?'Game badges':undefined} aria-hidden={badges.length?undefined:true}>{badges.map(({value,label,tone,Icon})=><span key={value} className={`game-badge-icon game-badge-${tone}`} title={label} aria-label={label}><Icon size={14} aria-hidden="true"/></span>)}</div>;
 }
 const compareRelease = (a: Game, b: Game, newest: boolean) => {
   const first = display(a.values['Release Date']).trim();
@@ -776,8 +776,9 @@ export default function Home() {
             {filtered.slice(0, limit).map((g) => (
               cardView==='compact'?<article className={`game-card game-card-compact ${scoreTone(g.values.Score)}`} key={g.id}>
                 <button className="compact-card-main" onClick={()=>openGame(g)} aria-label={`Open ${title(g,fields)}`}>
-                  <div className="compact-card-art"><GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="card" /><CardBadges game={g}/></div>
+                  <div className="compact-card-art"><GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="card" /></div>
                   <h2>{title(g,fields).replace(/^\*\*|\*\*$/g,'')}</h2>
+                  <CardBadges game={g}/>
                 </button>
               </article>:<article className="game-card" key={g.id}>
                 <button
@@ -794,7 +795,6 @@ export default function Home() {
                     </div>
                     <GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="card" />
                     <span>{display(g.values.Genre) || 'GAME COLLECTION'}</span>
-                    <CardBadges game={g}/>
                   </div>
                   <div className="game-info">
                     <h2>{title(g, fields).replace(/^\*\*|\*\*$/g, '')}</h2>
@@ -824,6 +824,7 @@ export default function Home() {
                     <span className="no-link">No link</span>
                   )}
                 </div>
+                <CardBadges game={g}/>
               </article>
             ))}
           </div>
