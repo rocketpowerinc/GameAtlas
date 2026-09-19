@@ -430,7 +430,7 @@ h2 {
 }
 .filter-row {
   display: grid;
-  grid-template-columns: repeat(8,minmax(100px,1fr));
+  grid-template-columns: repeat(7,minmax(110px,1fr));
   align-items: center;
   gap: 14px;
   margin: 0;
@@ -732,6 +732,37 @@ footer {
   border-top: 1px solid var(--border);
   pointer-events: none;
 }
+.game-card-replay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-top: auto;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+.game-card-replay strong { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.replay-platforms { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px; }
+.replay-platforms small { font-size:10px; }
+.replay-platform-icon {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:25px;
+  height:25px;
+  padding:0 5px;
+  border:1px solid color-mix(in srgb,var(--primary) 65%,var(--border));
+  border-radius:7px;
+  background:color-mix(in srgb,var(--primary) 12%,var(--card));
+  color:var(--primary);
+  font-size:8px;
+  font-weight:800;
+  line-height:1;
+}
+.game-card:has(.game-card-replay) .game-card-badges { margin-top:0; }
 .game-badge-icon {
   display: inline-flex;
   align-items: center;
@@ -1334,6 +1365,7 @@ footer {
 }
 .game-card:not(.game-card-compact){min-height:430px}
 .game-card:not(.game-card-compact) > .game-card-badges{width:auto;margin:0 18px;padding-bottom:12px}
+.game-card:not(.game-card-compact) > .game-card-replay{width:auto;margin:0 18px}
 .game-grid-compact{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px}
 .game-card-compact{min-height:218px;border-color:color-mix(in srgb,currentColor 48%,var(--border));border-radius:8px}
 .game-card-compact:hover{border-color:currentColor;transform:translateY(-2px)}
@@ -1341,6 +1373,9 @@ footer {
 .compact-card-art{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:3 / 4;overflow:hidden;background:var(--card)}
 .compact-card-art{position:relative}
 .game-card-compact .game-card-badges{gap:3px;min-height:34px;padding:5px 6px 7px}
+.game-card-compact .game-card-replay{padding:5px 6px}
+.game-card-compact .game-card-replay strong{font-size:8px}
+.game-card-compact .replay-platform-icon{min-width:21px;height:21px;padding:0 4px;border-radius:6px;font-size:7px}
 .game-card-compact .game-badge-icon{width:22px;height:22px;flex-basis:22px}
 .game-card-compact .game-badge-icon svg{width:12px;height:12px}
 .compact-card-art .game-thumbnail-card{width:100%;height:100%;border-radius:0;object-fit:cover;box-shadow:none}

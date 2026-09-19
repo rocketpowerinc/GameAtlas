@@ -72,7 +72,6 @@ import {
   dedupeSources,
   orderedSources,
   preferredSourceUrl,
-  playNextOnOptions,
   validate,
   type Library,
   type Field,
@@ -98,6 +97,14 @@ const badgeValues=new Set<string>(badgeDefinitions.map(badge=>badge.value));
 function CardBadges({game}:{game:Game}){
   const badges=badgesFor(game);
   return <div className="game-card-badges" aria-label={badges.length?'Game badges':undefined} aria-hidden={badges.length?undefined:true}>{badges.map(({value,label,tone,Icon})=><span key={value} className={`game-badge-icon game-badge-${tone}`} title={label} aria-label={label}><Icon size={14} aria-hidden="true"/></span>)}</div>;
+}
+const replayPlatformLabels:Record<string,string>={
+  Steam:'ST','Switch 2':'S2','Playstation 5':'PS5','Xbox Series X':'XSX',Switch:'NS','Playstation VR':'VR','Xbox One':'XB1','Playstation 4':'PS4',Wiiu:'WU','PS Vita':'VITA','Nintendo 3ds':'3DS',Wii:'WII','Playstation 3':'PS3','Xbox 360':'360',PSP:'PSP','Nintendo DS':'DS','Xbox (OG)':'XB','Gamecube':'GC','Gameboy Advance':'GBA','Playstation 2':'PS2','Sega Dreamcast':'DC','Gameboy/GameBoy Color':'GBC',N64:'N64','Playstation 1':'PS1','Sega Gamegear':'GG',SNES:'SNES','Sega Genesis':'GEN',NES:'NES'
+};
+function CardReplayOn({game}:{game:Game}){
+  if(!contains(game,'Status','Replay'))return null;
+  const destinations=Array.isArray(game.values['Play Next On'])?game.values['Play Next On'] as string[]:[];
+  return <div className="game-card-replay" aria-label={destinations.length?`Replay on ${destinations.join(', ')}`:'Replay destination not set'}><strong>Replay On</strong><span className="replay-platforms">{destinations.length?destinations.map(destination=><span className="replay-platform-icon" key={destination} title={destination} aria-label={destination}>{replayPlatformLabels[destination]??destination.slice(0,4).toUpperCase()}</span>):<small>Not set</small>}</span></div>;
 }
 const compareRelease = (a: Game, b: Game, newest: boolean) => {
   const first = display(a.values['Release Date']).trim();
@@ -187,7 +194,6 @@ export default function Home() {
     [status, setStatus] = useState('All statuses'),
     [badge, setBadge] = useState('All badges'),
     [notesFilter, setNotesFilter] = useState('All notes'),
-    [playNextOn, setPlayNextOn] = useState('All destinations'),
     [esrb, setEsrb] = useState('All ESRB ratings'),
     [sort, setSort] = useState('Title A–Z'),
     [cardView, setCardView] = useState<'standard'|'compact'>(()=>{try{return localStorage.getItem('gameatlas-card-view')==='standard'?'standard':'compact';}catch{return 'compact';}}),
@@ -528,7 +534,7 @@ export default function Home() {
               setView('All games');
               setPlatform('All platforms');
               setGenre('All genres');
-              setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setPlayNextOn('All destinations');setEsrb('All ESRB ratings');
+              setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setEsrb('All ESRB ratings');
               return { query: q };
             },
           },
@@ -569,7 +575,6 @@ export default function Home() {
             (notesFilter === 'All notes' ||
               (notesFilter === 'Has notes' && display(g.values.Notes).trim().length > 0) ||
               (notesFilter === 'No notes' && display(g.values.Notes).trim().length === 0)) &&
-            (playNextOn === 'All destinations' || contains(g, 'Play Next On', playNextOn)) &&
             (esrb === 'All ESRB ratings' || (g.values.ESRB || 'Unknown') === esrb) &&
             Object.values(g.values).some((v) =>
               display(v).toLowerCase().includes(query.toLowerCase()),
@@ -583,7 +588,7 @@ export default function Home() {
               : title(a, fields).localeCompare(title(b, fields)) *
                 (sort === 'Title Z–A' ? -1 : 1),
         ),
-    [data, view, query, platform, genre, status, badge, notesFilter, playNextOn, esrb, sort,dashboardFilter],
+    [data, view, query, platform, genre, status, badge, notesFilter, esrb, sort,dashboardFilter],
   );
   const gamePageDetailFields=draft?fields.filter(field=>
     !['Title','Studio','Release Date','Platform','Ownership','Genre','Status','Badges','Play Next On','Score','ESRB','Link','Notes','Wishlist Priority'].includes(field.id)&&
@@ -616,7 +621,7 @@ export default function Home() {
           </button>
         </div>
       </header>
-      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setPlayNextOn('All destinations');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
+      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
         <div className="collection-heading">
           <div>
             <p className="eyebrow">YOUR COLLECTION, ALL TOGETHER</p>
@@ -718,7 +723,6 @@ export default function Home() {
           />
           <Pick value={badge} onChange={setBadge} options={['All badges',...badgeDefinitions.map(item=>item.value)]} label="Filter badge"/>
           <Pick value={notesFilter} onChange={setNotesFilter} options={['All notes','Has notes','No notes']} label="Filter notes"/>
-          <Pick value={playNextOn} onChange={setPlayNextOn} options={['All destinations',...playNextOnOptions]} label="Filter play next on"/>
           <Pick value={esrb} onChange={setEsrb} options={['All ESRB ratings',...esrbOptions]} label="Filter by ESRB rating"/>
           <Pick
             value={sort}
@@ -742,14 +746,14 @@ export default function Home() {
             {(query ||
               platform !== 'All platforms' ||
               genre !== 'All genres' ||
-              status !== 'All statuses' || badge !== 'All badges' || notesFilter !== 'All notes' || playNextOn !== 'All destinations' || esrb !== 'All ESRB ratings') && (
+              status !== 'All statuses' || badge !== 'All badges' || notesFilter !== 'All notes' || esrb !== 'All ESRB ratings') && (
               <button
                 className="text-button"
                 onClick={() => {
                   setQuery('');
                   setPlatform('All platforms');
                   setGenre('All genres');
-                  setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setPlayNextOn('All destinations');setEsrb('All ESRB ratings');
+                  setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setEsrb('All ESRB ratings');
                 }}
               >
                 Clear filters
@@ -778,7 +782,6 @@ export default function Home() {
               status !== 'All statuses' ||
               badge !== 'All badges' ||
               notesFilter !== 'All notes' ||
-              playNextOn !== 'All destinations' ||
               esrb !== 'All ESRB ratings'
                 ? 'Try a different search or clear your filters.'
                 : 'Add a game to start this part of your collection.'}
@@ -794,6 +797,7 @@ export default function Home() {
                 <button className="compact-card-main" onClick={()=>openGame(g)} aria-label={`Open ${title(g,fields)}`}>
                   <div className="compact-card-art"><GameThumbnail key={g.lookup?.coverUrl} url={g.lookup?.coverUrl} variant="card" /></div>
                   <h2>{title(g,fields).replace(/^\*\*|\*\*$/g,'')}</h2>
+                  <CardReplayOn game={g}/>
                   <CardBadges game={g}/>
                 </button>
               </article>:<article className="game-card" key={g.id}>
@@ -840,6 +844,7 @@ export default function Home() {
                     <span className="no-link">No link</span>
                   )}
                 </div>
+                <CardReplayOn game={g}/>
                 <CardBadges game={g}/>
               </article>
             ))}
