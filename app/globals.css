@@ -730,7 +730,6 @@ footer {
   margin-top: auto;
   padding: 8px 0 9px;
   border-top: 1px solid var(--border);
-  pointer-events: none;
 }
 .game-card-replay {
   display: flex;
@@ -767,6 +766,7 @@ footer {
 .replay-platform-icon:hover .replay-platform-tooltip{opacity:1;transform:translateY(0)}
 .game-card:has(.game-card-replay) .game-card-badges { margin-top:0; }
 .game-badge-icon {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -778,7 +778,10 @@ footer {
   background: color-mix(in srgb,var(--badge-color) 20%,#10151b 80%);
   box-shadow: 0 3px 10px #0007;
   color: var(--badge-color);
+  cursor: help;
 }
+.game-badge-tooltip{position:absolute;right:0;bottom:calc(100% + 7px);z-index:20;width:max-content;max-width:105px;padding:5px 7px;border:1px solid var(--border);border-radius:6px;background:#05080d;color:#fff;box-shadow:0 7px 22px #000a;font-size:10px;font-weight:650;line-height:1.2;text-align:center;white-space:normal;opacity:0;transform:translateY(3px);transition:opacity .12s ease,transform .12s ease;pointer-events:none}
+.game-badge-icon:hover .game-badge-tooltip{opacity:1;transform:translateY(0)}
 .game-badge-favorite { --badge-color: #ff536d; }
 .game-badge-hidden-gem { --badge-color: #bd74ff; }
 .game-badge-acclaimed { --badge-color: #f5bf3f; }
