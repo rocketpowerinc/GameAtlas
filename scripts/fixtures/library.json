@@ -126,7 +126,7 @@
     },
     {
       "id": "Play Next On",
-      "name": "Play Next On",
+      "name": "Replay On",
       "type": "multi_select",
       "options": [
         "Steam",

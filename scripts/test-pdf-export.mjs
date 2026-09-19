@@ -35,7 +35,7 @@ try{
  assert(html.includes('Keep &lt;safe&gt;')&&!html.includes('Keep <safe>'));
  assert(html.includes('href="https://en.wikipedia.org/wiki/Zelda"'));
  assert(html.includes('E10+ - Everyone 10+'));
- assert(html.includes('<b>Play next on</b><span>Steam, Switch 2</span>'));
+ assert(html.includes('<b>Replay on</b><span>Steam, Switch 2</span>'));
  assert.equal(selectPdfLibrary(library,'all').games.length,2);
  assert.equal(selectPdfLibrary(library,'physical').games.length,1);
  assert.equal(selectPdfLibrary(library,'physical').games[0].values.Title,'Zelda & Friends');

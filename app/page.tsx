@@ -65,6 +65,9 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
+import type { IconType } from 'react-icons';
+import { FaPlaystation, FaXbox } from 'react-icons/fa6';
+import { SiNintendo, SiNintendo3Ds, SiNintendogamecube, SiNintendoswitch, SiPlaystation, SiPlaystation2, SiPlaystation3, SiPlaystation4, SiPlaystation5, SiPlaystationportable, SiPlaystationvita, SiSega, SiSteam, SiWii, SiWiiu } from 'react-icons/si';
 import { Empty, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -98,13 +101,13 @@ function CardBadges({game}:{game:Game}){
   const badges=badgesFor(game);
   return <div className="game-card-badges" aria-label={badges.length?'Game badges':undefined} aria-hidden={badges.length?undefined:true}>{badges.map(({value,label,tone,Icon})=><span key={value} className={`game-badge-icon game-badge-${tone}`} title={label} aria-label={label}><Icon size={14} aria-hidden="true"/></span>)}</div>;
 }
-const replayPlatformLabels:Record<string,string>={
-  Steam:'ST','Switch 2':'S2','Playstation 5':'PS5','Xbox Series X':'XSX',Switch:'NS','Playstation VR':'VR','Xbox One':'XB1','Playstation 4':'PS4',Wiiu:'WU','PS Vita':'VITA','Nintendo 3ds':'3DS',Wii:'WII','Playstation 3':'PS3','Xbox 360':'360',PSP:'PSP','Nintendo DS':'DS','Xbox (OG)':'XB','Gamecube':'GC','Gameboy Advance':'GBA','Playstation 2':'PS2','Sega Dreamcast':'DC','Gameboy/GameBoy Color':'GBC',N64:'N64','Playstation 1':'PS1','Sega Gamegear':'GG',SNES:'SNES','Sega Genesis':'GEN',NES:'NES'
+const replayPlatformLogos:Record<string,{Icon:IconType;model?:string}>={
+  Steam:{Icon:SiSteam},'Switch 2':{Icon:SiNintendoswitch,model:'2'},'Playstation 5':{Icon:SiPlaystation5},'Xbox Series X':{Icon:FaXbox,model:'SX'},Switch:{Icon:SiNintendoswitch},'Playstation VR':{Icon:FaPlaystation,model:'VR'},'Xbox One':{Icon:FaXbox,model:'ONE'},'Playstation 4':{Icon:SiPlaystation4},Wiiu:{Icon:SiWiiu},'PS Vita':{Icon:SiPlaystationvita},'Nintendo 3ds':{Icon:SiNintendo3Ds},Wii:{Icon:SiWii},'Playstation 3':{Icon:SiPlaystation3},'Xbox 360':{Icon:FaXbox,model:'360'},PSP:{Icon:SiPlaystationportable},'Nintendo DS':{Icon:SiNintendo,model:'DS'},'Xbox (OG)':{Icon:FaXbox,model:'OG'},Gamecube:{Icon:SiNintendogamecube},'Gameboy Advance':{Icon:SiNintendo,model:'GBA'},'Playstation 2':{Icon:SiPlaystation2},'Sega Dreamcast':{Icon:SiSega,model:'DC'},'Gameboy/GameBoy Color':{Icon:SiNintendo,model:'GBC'},N64:{Icon:SiNintendo,model:'64'},'Playstation 1':{Icon:SiPlaystation,model:'1'},'Sega Gamegear':{Icon:SiSega,model:'GG'},SNES:{Icon:SiNintendo,model:'SNES'},'Sega Genesis':{Icon:SiSega,model:'GEN'},NES:{Icon:SiNintendo,model:'NES'}
 };
 function CardReplayOn({game}:{game:Game}){
   if(!contains(game,'Status','Replay'))return null;
   const destinations=Array.isArray(game.values['Play Next On'])?game.values['Play Next On'] as string[]:[];
-  return <div className="game-card-replay" aria-label={destinations.length?`Replay on ${destinations.join(', ')}`:'Replay destination not set'}><strong>Replay On</strong><span className="replay-platforms">{destinations.length?destinations.map(destination=><span className="replay-platform-icon" key={destination} title={destination} aria-label={destination}>{replayPlatformLabels[destination]??destination.slice(0,4).toUpperCase()}</span>):<small>Not set</small>}</span></div>;
+  return <div className="game-card-replay" aria-label={destinations.length?`Replay on ${destinations.join(', ')}`:'Replay destination not set'}><strong>Replay On</strong><span className="replay-platforms">{destinations.length?destinations.map(destination=>{const logo=replayPlatformLogos[destination],Logo=logo?.Icon;return <span className="replay-platform-icon" key={destination} role="img" title={destination} aria-label={destination}>{Logo?<Logo className="replay-platform-logo" aria-hidden="true"/>:<Gamepad2 className="replay-platform-logo" aria-hidden="true"/>}{logo?.model&&<small className="replay-platform-model" aria-hidden="true">{logo.model}</small>}<span className="replay-platform-tooltip" role="tooltip" aria-hidden="true">{destination}</span></span>}):<small>Not set</small>}</span></div>;
 }
 const compareRelease = (a: Game, b: Game, newest: boolean) => {
   const first = display(a.values['Release Date']).trim();
@@ -883,7 +886,7 @@ export default function Home() {
                   {display(draft.values.Ownership)&&<span>{display(draft.values.Ownership)}</span>}
                   {display(draft.values.Genre)&&<span>{display(draft.values.Genre)}</span>}
                   {display(draft.values.Status)&&<span>{display(draft.values.Status)}</span>}
-                  {display(draft.values['Play Next On'])&&<span>Play next: {display(draft.values['Play Next On'])}</span>}
+                  {display(draft.values['Play Next On'])&&<span>Replay on: {display(draft.values['Play Next On'])}</span>}
                   {gameBadges(draft).filter(tag=>!badgeValues.has(tag)).map(tag=><span key={tag}>{tag}</span>)}
                   {display(draft.values['Wishlist Priority'])&&<span>Priority: {display(draft.values['Wishlist Priority'])}</span>}
                   {draft.values.Score!==''&&draft.values.Score!==undefined&&<span>Score {display(draft.values.Score)} / 10</span>}
@@ -1050,7 +1053,7 @@ export default function Home() {
                 </div>
               </section>
               <div className="field-grid">
-                {fields.filter(field=>field.id!=='Title').map((f) => (
+                {fields.filter(field=>field.id!=='Title'&&(field.id!=='Play Next On'||contains(draft,'Status','Replay'))).map((f) => (
                   <div
                     className={`field ${f.type === 'multi_select' || f.id === 'Notes' ? 'wide' : ''}`}
                     key={f.id}

@@ -14,7 +14,7 @@ const original={revision:4,fields:[
  {id:'two',values:{title:'Preserved',status:['Replay'],notes:'Replay on Steam and PS5'}}
 ]};
 const next=withCurrentLibraryShape(original);
-assert.deepEqual(next.fields.map(field=>field.name),['Title','Wishlist Priority','Status','Play Next On','Notes']);
+assert.deepEqual(next.fields.map(field=>field.name),['Title','Wishlist Priority','Status','Replay On','Notes']);
 assert.deepEqual(next.fields[1].options,['Must have','Someday']);
 assert.deepEqual(next.fields.find(field=>field.id==='Play Next On').options,playNextOnOptions);
 assert.equal(next.games[0].values['legacy-link'],undefined);
