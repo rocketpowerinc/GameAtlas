@@ -275,10 +275,13 @@ app.whenReady().then(async()=>{
     document.querySelector('[data-slot="dialog-close"]').click();await wait();
     if(document.querySelector('[aria-label="Refresh library"]')||document.querySelector('[aria-label="Grid view"]')||document.querySelector('[aria-label="Table view"]')||document.querySelector('.library-table'))throw Error('Removed library controls remain');
     const search=document.querySelector('.library-search').getBoundingClientRect(),filters=[...document.querySelectorAll('.filter-row .picker')].map(element=>element.getBoundingClientRect());
-    if(filters.length!==6||filters.some(filter=>filter.top<search.bottom)||Math.max(...filters.map(filter=>filter.width))-Math.min(...filters.map(filter=>filter.width))>2)throw Error('Search and filter layout is uneven');
+    if(filters.length!==7||filters.some(filter=>filter.top<search.bottom)||Math.max(...filters.map(filter=>filter.width))-Math.min(...filters.map(filter=>filter.width))>2)throw Error('Search and filter layout is uneven');
     const badgeFilter=document.querySelector('[aria-label="Filter badge"]');badgeFilter.click();await wait();
     const kidsBadge=[...document.querySelectorAll('[role="option"]')].find(option=>option.textContent.includes('Play with Kids'));if(!kidsBadge)throw Error('Badge filter missing');kidsBadge.click();await wait();
     if(!badgeFilter.textContent.includes('Play with Kids')||document.querySelectorAll('.game-card').length!==1)throw Error('Badge filter did not select matching games');
+    const notesFilter=document.querySelector('[aria-label="Filter notes"]');notesFilter.click();await wait();
+    const hasNotes=[...document.querySelectorAll('[role="option"]')].find(option=>option.textContent.includes('Has notes'));if(!hasNotes)throw Error('Notes filter missing');hasNotes.click();await wait();
+    if(!notesFilter.textContent.includes('Has notes')||document.querySelectorAll('.game-card').length!==1)throw Error('Notes filter did not select matching games');
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Dashboard').click();await wait();
     const dashboardCards=[...document.querySelectorAll('.dashboard-total')].map(card=>card.querySelector('span')?.textContent);
     if(!document.querySelector('.collection-dashboard')||dashboardCards.join('|')!=='All Games|Owned Physical|Owned Digital|Completed|Playing|Must Play|Replay|Wish List|Upcoming'||!document.querySelector('[aria-label="All Games: 1 games"]')||!document.querySelector('[aria-label="Owned Physical: 1 games"]')||!document.querySelector('[aria-label="Owned Digital: 0 games"]')||!document.querySelector('[aria-label="Must Play: 1 games"]')||!document.querySelector('[aria-label="Replay: 0 games"]')||!document.querySelector('[aria-label="Upcoming: 0 games"]'))throw Error('Dashboard totals are wrong');
