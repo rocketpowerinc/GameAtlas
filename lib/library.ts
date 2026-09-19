@@ -4,6 +4,9 @@ export type Game = {id:string;values:Record<string,string|number|boolean|string[
 export type Hardware = {id:string;name:string;type:'Console'|'Peripheral';manufacturer:string;model?:string;releaseDate?:string;notes?:string;description?:string;coverUrl?:string};
 export type Library = {fields:Field[];games:Game[];hardware?:Hardware[];revision:number};
 export const display = (v:unknown):string => Array.isArray(v)?v.join(', '):v===undefined||v===null?'':String(v);
+export const playNextOnOptions=[
+ 'Steam','Switch 2','Playstation 5','Xbox Series X','Switch','Playstation VR','Xbox One','Playstation 4','Wiiu','PS Vita','Nintendo 3ds','Wii','Playstation 3','Xbox 360','PSP','Nintendo DS','Xbox (OG)','Gamecube','Gameboy Advance','Playstation 2','Sega Dreamcast','Gameboy/GameBoy Color','N64','Playstation 1','Sega Gamegear','SNES','Sega Genesis','NES'
+];
 export function dedupeSources(sources:NonNullable<Game['lookup']>['sources']|undefined){
  const byName=new Map<string,{name:string;url:string}>();
  for(const source of sources??[]){if(typeof source?.name!=='string'||typeof source?.url!=='string'||!source.name.trim()||!source.url.trim())continue;const key=source.name.trim().toLowerCase();if(byName.has(key))byName.delete(key);byName.set(key,{name:source.name.trim(),url:source.url.trim()});}
@@ -25,12 +28,20 @@ export function withCurrentLibraryShape(library:Library):Library{
  const linkIds=next.fields.filter(field=>field.name.trim().toLowerCase()==='link'||field.id.trim().toLowerCase()==='link').map(field=>field.id);
  const priority=next.fields.find(field=>field.name.trim().toLowerCase()==='wishlist priority'||field.id.trim().toLowerCase()==='wishlist priority');
  next.fields=next.fields.filter(field=>!retired.has(field.id)).map(field=>field.id===priority?.id?{...field,options:field.options.filter(option=>option.trim().toLowerCase()!=='want soon')}:field);
+ let playNext=next.fields.find(field=>field.name.trim().toLowerCase()==='play next on'||field.id.trim().toLowerCase()==='play next on');
+ if(!playNext){playNext={id:'Play Next On',name:'Play Next On',type:'multi_select',options:playNextOnOptions};const statusIndex=next.fields.findIndex(field=>field.name.trim().toLowerCase()==='status'||field.id.trim().toLowerCase()==='status');next.fields.splice(statusIndex<0?next.fields.length:statusIndex+1,0,playNext);}
+ else {playNext.name='Play Next On';playNext.type='multi_select';playNext.options=[...playNextOnOptions,...playNext.options.filter(option=>!playNextOnOptions.some(standard=>standard.toLowerCase()===option.toLowerCase()))];}
+ const notes=next.fields.find(field=>field.name.trim().toLowerCase()==='notes'||field.id.trim().toLowerCase()==='notes'),status=next.fields.find(field=>field.name.trim().toLowerCase()==='status'||field.id.trim().toLowerCase()==='status');
  for(const game of next.games){
   for(const id of linkIds){const url=typeof game.values[id]==='string'?game.values[id].trim():'';if(/^https?:\/\//i.test(url)){const sources=game.lookup?.sources??[];if(!sources.some(source=>source.url===url))game.lookup={...game.lookup,sources:[...sources,{name:sourceName(url),url}]};}}
   if(game.lookup)game.lookup={...game.lookup,sources:dedupeSources(game.lookup.sources.map(source=>sourceName(source.url)==='PriceCharting'?{...source,name:'PriceCharting'}:source))};
   if(game.lookup?.description)game.lookup.description=decodeHtml(game.lookup.description);
   for(const id of retired)delete game.values[id];
   if(priority){const value=game.values[priority.id];if(Array.isArray(value))game.values[priority.id]=value.filter(option=>option.trim().toLowerCase()!=='want soon');else if(typeof value==='string'&&value.trim().toLowerCase()==='want soon')game.values[priority.id]='';}
+  if(notes&&typeof game.values[notes.id]==='string'&&game.values[notes.id].trim()==='Replay on Steam'){
+   const destinations=Array.isArray(game.values[playNext.id])?game.values[playNext.id] as string[]:[];game.values[playNext.id]=destinations.includes('Steam')?destinations:[...destinations,'Steam'];game.values[notes.id]='';
+   if(status){const statuses=Array.isArray(game.values[status.id])?game.values[status.id] as string[]:[];game.values[status.id]=statuses.includes('Replay')?statuses:[...statuses,'Replay'];}
+  }
   delete (game as Game&{dateEnd?:string}).dateEnd;delete (game as Game&{dateIsTime?:number}).dateIsTime;
  }
  return next;

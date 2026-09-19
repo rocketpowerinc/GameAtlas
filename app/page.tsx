@@ -72,6 +72,7 @@ import {
   dedupeSources,
   orderedSources,
   preferredSourceUrl,
+  playNextOnOptions,
   validate,
   type Library,
   type Field,
@@ -186,6 +187,7 @@ export default function Home() {
     [status, setStatus] = useState('All statuses'),
     [badge, setBadge] = useState('All badges'),
     [notesFilter, setNotesFilter] = useState('All notes'),
+    [playNextOn, setPlayNextOn] = useState('All destinations'),
     [esrb, setEsrb] = useState('All ESRB ratings'),
     [sort, setSort] = useState('Title A–Z'),
     [cardView, setCardView] = useState<'standard'|'compact'>(()=>{try{return localStorage.getItem('gameatlas-card-view')==='standard'?'standard':'compact';}catch{return 'compact';}}),
@@ -526,7 +528,7 @@ export default function Home() {
               setView('All games');
               setPlatform('All platforms');
               setGenre('All genres');
-              setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setEsrb('All ESRB ratings');
+              setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setPlayNextOn('All destinations');setEsrb('All ESRB ratings');
               return { query: q };
             },
           },
@@ -567,6 +569,7 @@ export default function Home() {
             (notesFilter === 'All notes' ||
               (notesFilter === 'Has notes' && display(g.values.Notes).trim().length > 0) ||
               (notesFilter === 'No notes' && display(g.values.Notes).trim().length === 0)) &&
+            (playNextOn === 'All destinations' || contains(g, 'Play Next On', playNextOn)) &&
             (esrb === 'All ESRB ratings' || (g.values.ESRB || 'Unknown') === esrb) &&
             Object.values(g.values).some((v) =>
               display(v).toLowerCase().includes(query.toLowerCase()),
@@ -580,10 +583,10 @@ export default function Home() {
               : title(a, fields).localeCompare(title(b, fields)) *
                 (sort === 'Title Z–A' ? -1 : 1),
         ),
-    [data, view, query, platform, genre, status, badge, notesFilter, esrb, sort,dashboardFilter],
+    [data, view, query, platform, genre, status, badge, notesFilter, playNextOn, esrb, sort,dashboardFilter],
   );
   const gamePageDetailFields=draft?fields.filter(field=>
-    !['Title','Studio','Release Date','Platform','Ownership','Genre','Status','Badges','Score','ESRB','Link','Notes','Wishlist Priority'].includes(field.id)&&
+    !['Title','Studio','Release Date','Platform','Ownership','Genre','Status','Badges','Play Next On','Score','ESRB','Link','Notes','Wishlist Priority'].includes(field.id)&&
     display(draft.values[field.id]).trim()!==''
   ):[];
   const gamePageSources=draft?orderedSources(draft.lookup?.sources).filter(source=>safeLink(source.url)):[];
@@ -613,7 +616,7 @@ export default function Home() {
           </button>
         </div>
       </header>
-      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
+      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setPlayNextOn('All destinations');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
         <div className="collection-heading">
           <div>
             <p className="eyebrow">YOUR COLLECTION, ALL TOGETHER</p>
@@ -715,6 +718,7 @@ export default function Home() {
           />
           <Pick value={badge} onChange={setBadge} options={['All badges',...badgeDefinitions.map(item=>item.value)]} label="Filter badge"/>
           <Pick value={notesFilter} onChange={setNotesFilter} options={['All notes','Has notes','No notes']} label="Filter notes"/>
+          <Pick value={playNextOn} onChange={setPlayNextOn} options={['All destinations',...playNextOnOptions]} label="Filter play next on"/>
           <Pick value={esrb} onChange={setEsrb} options={['All ESRB ratings',...esrbOptions]} label="Filter by ESRB rating"/>
           <Pick
             value={sort}
@@ -738,14 +742,14 @@ export default function Home() {
             {(query ||
               platform !== 'All platforms' ||
               genre !== 'All genres' ||
-              status !== 'All statuses' || badge !== 'All badges' || notesFilter !== 'All notes' || esrb !== 'All ESRB ratings') && (
+              status !== 'All statuses' || badge !== 'All badges' || notesFilter !== 'All notes' || playNextOn !== 'All destinations' || esrb !== 'All ESRB ratings') && (
               <button
                 className="text-button"
                 onClick={() => {
                   setQuery('');
                   setPlatform('All platforms');
                   setGenre('All genres');
-                  setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setEsrb('All ESRB ratings');
+                  setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setPlayNextOn('All destinations');setEsrb('All ESRB ratings');
                 }}
               >
                 Clear filters
@@ -774,6 +778,7 @@ export default function Home() {
               status !== 'All statuses' ||
               badge !== 'All badges' ||
               notesFilter !== 'All notes' ||
+              playNextOn !== 'All destinations' ||
               esrb !== 'All ESRB ratings'
                 ? 'Try a different search or clear your filters.'
                 : 'Add a game to start this part of your collection.'}
@@ -873,6 +878,7 @@ export default function Home() {
                   {display(draft.values.Ownership)&&<span>{display(draft.values.Ownership)}</span>}
                   {display(draft.values.Genre)&&<span>{display(draft.values.Genre)}</span>}
                   {display(draft.values.Status)&&<span>{display(draft.values.Status)}</span>}
+                  {display(draft.values['Play Next On'])&&<span>Play next: {display(draft.values['Play Next On'])}</span>}
                   {gameBadges(draft).filter(tag=>!badgeValues.has(tag)).map(tag=><span key={tag}>{tag}</span>)}
                   {display(draft.values['Wishlist Priority'])&&<span>Priority: {display(draft.values['Wishlist Priority'])}</span>}
                   {draft.values.Score!==''&&draft.values.Score!==undefined&&<span>Score {display(draft.values.Score)} / 10</span>}
