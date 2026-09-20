@@ -196,7 +196,7 @@ export default function Home() {
     [genre, setGenre] = useState('All genres'),
     [status, setStatus] = useState('All statuses'),
     [badge, setBadge] = useState('All badges'),
-    [notesFilter, setNotesFilter] = useState('All notes'),
+    [notesFilter, setNotesFilter] = useState('Notes: Any'),
     [esrb, setEsrb] = useState('All ESRB ratings'),
     [sort, setSort] = useState('Title A–Z'),
     [cardView, setCardView] = useState<'standard'|'compact'>(()=>{try{return localStorage.getItem('gameatlas-card-view')==='standard'?'standard':'compact';}catch{return 'compact';}}),
@@ -537,7 +537,7 @@ export default function Home() {
               setView('All games');
               setPlatform('All platforms');
               setGenre('All genres');
-              setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setEsrb('All ESRB ratings');
+              setStatus('All statuses');setBadge('All badges');setNotesFilter('Notes: Any');setEsrb('All ESRB ratings');
               return { query: q };
             },
           },
@@ -575,9 +575,9 @@ export default function Home() {
             (genre === 'All genres' || contains(g, 'Genre', genre)) &&
             (status === 'All statuses' || contains(g, 'Status', status)) &&
             (badge === 'All badges' || contains(g, 'Badges', badge)) &&
-            (notesFilter === 'All notes' ||
-              (notesFilter === 'Has notes' && display(g.values.Notes).trim().length > 0) ||
-              (notesFilter === 'No notes' && display(g.values.Notes).trim().length === 0)) &&
+            (notesFilter === 'Notes: Any' ||
+              (notesFilter === 'Notes: Present' && display(g.values.Notes).trim().length > 0) ||
+              (notesFilter === 'Notes: None' && display(g.values.Notes).trim().length === 0)) &&
             (esrb === 'All ESRB ratings' || (g.values.ESRB || 'Unknown') === esrb) &&
             Object.values(g.values).some((v) =>
               display(v).toLowerCase().includes(query.toLowerCase()),
@@ -624,7 +624,7 @@ export default function Home() {
           </button>
         </div>
       </header>
-      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
+      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setBadge('All badges');setNotesFilter('Notes: Any');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
         <div className="collection-heading">
           <div>
             <p className="eyebrow">YOUR COLLECTION, ALL TOGETHER</p>
@@ -725,7 +725,7 @@ export default function Home() {
             label="Filter status"
           />
           <Pick value={badge} onChange={setBadge} options={['All badges',...badgeDefinitions.map(item=>item.value)]} label="Filter badge"/>
-          <Pick value={notesFilter} onChange={setNotesFilter} options={['All notes','Has notes','No notes']} label="Filter notes"/>
+          <Pick value={notesFilter} onChange={setNotesFilter} options={['Notes: Any','Notes: Present','Notes: None']} label="Filter notes"/>
           <Pick value={esrb} onChange={setEsrb} options={['All ESRB ratings',...esrbOptions]} label="Filter by ESRB rating"/>
           <Pick
             value={sort}
@@ -749,14 +749,14 @@ export default function Home() {
             {(query ||
               platform !== 'All platforms' ||
               genre !== 'All genres' ||
-              status !== 'All statuses' || badge !== 'All badges' || notesFilter !== 'All notes' || esrb !== 'All ESRB ratings') && (
+              status !== 'All statuses' || badge !== 'All badges' || notesFilter !== 'Notes: Any' || esrb !== 'All ESRB ratings') && (
               <button
                 className="text-button"
                 onClick={() => {
                   setQuery('');
                   setPlatform('All platforms');
                   setGenre('All genres');
-                  setStatus('All statuses');setBadge('All badges');setNotesFilter('All notes');setEsrb('All ESRB ratings');
+                  setStatus('All statuses');setBadge('All badges');setNotesFilter('Notes: Any');setEsrb('All ESRB ratings');
                 }}
               >
                 Clear filters
@@ -784,7 +784,7 @@ export default function Home() {
               genre !== 'All genres' ||
               status !== 'All statuses' ||
               badge !== 'All badges' ||
-              notesFilter !== 'All notes' ||
+              notesFilter !== 'Notes: Any' ||
               esrb !== 'All ESRB ratings'
                 ? 'Try a different search or clear your filters.'
                 : 'Add a game to start this part of your collection.'}
