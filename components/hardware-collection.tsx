@@ -1,12 +1,12 @@
 import {useMemo,useState} from 'react';
-import {ArrowLeft,BookOpen,Box,Cable,Cpu,Gamepad2,Glasses,ImageUp,Pencil,Plus,Search,Trash2} from 'lucide-react';
+import {ArrowLeft,BookOpen,Box,Cable,Cpu,Gamepad2,Glasses,ImageUp,Pencil,Plus,Search,Smartphone,Trash2} from 'lucide-react';
 import {hardwareTypeLabels,hardwareTypes,type Hardware, type Library} from '@/lib/library';
 import {artworkUrl,desktopRequest} from '@/lib/desktop';
 import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/ui/dialog';
 
 function HardwareArtwork({item,large=false}:{item:Hardware;large?:boolean}){
  const [failed,setFailed]=useState(false);const src=item.coverUrl&&!failed?artworkUrl(item.coverUrl):'';
- const fallback=item.type==='Book'?<BookOpen/>:item.type==='VR'?<Glasses/>:item.type==='Peripheral'?<Cable/>:item.type==='Emulation Console'?<Cpu/>:item.type==='Misc'?<Box/>:<Gamepad2/>;
+ const fallback=item.type==='Book'?<BookOpen/>:item.type==='VR'?<Glasses/>:item.type==='Mobile'?<Smartphone/>:item.type==='Peripheral'?<Cable/>:item.type==='Emulation Console'?<Cpu/>:item.type==='Misc'?<Box/>:<Gamepad2/>;
  return <div className={large?'hardware-artwork hardware-artwork-large':'hardware-artwork'}>{src?<img src={src} alt="" onError={()=>setFailed(true)}/>:fallback}</div>;
 }
 export function HardwareCollection({library,onReload,onBack}:{library:Library;onReload:()=>Promise<void>;onBack:()=>void}){

@@ -295,7 +295,7 @@ app.whenReady().then(async()=>{
     if(!document.querySelector('.dashboard-filter')||document.querySelectorAll('.game-card').length!==1)throw Error('Dashboard drill-down failed');
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Show all games').click();
     [...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Hardware').click();await wait();
-    const hardwareImage=document.querySelector('.hardware-card img');if(!document.querySelector('.hardware-collection')||document.querySelectorAll('.hardware-card').length!==1||!document.body.textContent.includes('Test Console')||!hardwareImage?.complete||!hardwareImage.naturalWidth)throw Error('Hardware collection or cached artwork missing');
+    const hardwareImage=document.querySelector('.hardware-card img'),hardwareSections=[...document.querySelectorAll('.hardware-group h2')].map(heading=>heading.textContent).join('|');if(!document.querySelector('.hardware-collection')||document.querySelectorAll('.hardware-card').length!==1||!document.body.textContent.includes('Test Console')||!hardwareImage?.complete||!hardwareImage.naturalWidth||hardwareSections!=='Consoles|Emulation Consoles|VR|Controllers|Mobile|Peripherals|Books|Misc')throw Error('Hardware collection, category order, or cached artwork missing');
     document.querySelector('.hardware-card').click();await wait();
     if(!document.querySelector('.hardware-page')||!document.body.textContent.includes('Keep the original box.')||!document.body.textContent.includes('Released 2020-01-01'))throw Error('Hardware detail page missing');
     document.querySelector('.game-page-edit-top').click();await wait();
