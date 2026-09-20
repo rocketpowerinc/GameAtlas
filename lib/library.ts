@@ -1,7 +1,10 @@
 import {decodeHtml} from './game-lookup';
 export type Field = {id:string;name:string;type:'text'|'multi_select'|'number'|'date'|'url'|'checkbox';options:string[]};
 export type Game = {id:string;values:Record<string,string|number|boolean|string[]>;esrb?:{url:string;title:string;platforms:string[];checkedAt:string};sourceUrl?:string;lookup?:{sources:{name:string;url:string}[];scoreSource?:string;releaseNote?:string;coverUrl?:string;description?:string}};
-export type Hardware = {id:string;name:string;type:'Console'|'Peripheral';manufacturer:string;model?:string;releaseDate?:string;notes?:string;description?:string;coverUrl?:string};
+export const hardwareTypes=['Console','Controller','Peripheral','Emulation Console','VR','Book','Misc'] as const;
+export type HardwareType=typeof hardwareTypes[number];
+export const hardwareTypeLabels:Record<HardwareType,string>={Console:'Consoles',Controller:'Controllers',Peripheral:'Peripherals','Emulation Console':'Emulation Consoles',VR:'VR',Book:'Books',Misc:'Misc'};
+export type Hardware = {id:string;name:string;type:HardwareType;manufacturer:string;model?:string;quantity?:number;releaseDate?:string;notes?:string;description?:string;coverUrl?:string};
 export type Library = {fields:Field[];games:Game[];hardware?:Hardware[];revision:number};
 export const display = (v:unknown):string => Array.isArray(v)?v.join(', '):v===undefined||v===null?'':String(v);
 export const playNextOnOptions=[
@@ -54,6 +57,6 @@ export function validate(data:unknown): asserts data is Library {
  if(new Set(d.fields.map(f=>f.id)).size!==d.fields.length||new Set(d.games.map(g=>g.id)).size!==d.games.length||new Set((d.hardware??[]).map(h=>h.id)).size!==(d.hardware?.length??0))throw new Error('Duplicate identifiers.');
  for(const f of d.fields){if(!f||typeof f.id!=='string'||!f.id||['__proto__','constructor','prototype'].includes(f.id)||typeof f.name!=='string'||!f.name.trim()||f.name.length>100||!['text','multi_select','number','date','url','checkbox'].includes(f.type)||!Array.isArray(f.options)||f.options.some(o=>typeof o!=='string'||o.length>200))throw new Error('Invalid property.');}
  for(const g of d.games){if(!g||typeof g.id!=='string'||!g.id||!g.values||typeof g.values!=='object'||Array.isArray(g.values))throw new Error('Invalid game.');for(const v of Object.values(g.values)){if(!(typeof v==='string'||typeof v==='number'&&Number.isFinite(v)||typeof v==='boolean'||Array.isArray(v)&&v.every(x=>typeof x==='string')))throw new Error('Invalid game value.');}}
- for(const h of d.hardware??[]){if(!h||typeof h.id!=='string'||!h.id||typeof h.name!=='string'||!h.name.trim()||h.name.length>200||!['Console','Peripheral'].includes(h.type)||typeof h.manufacturer!=='string'||h.manufacturer.length>200||['model','releaseDate','notes','description','coverUrl'].some(key=>{const value=h[key as keyof Hardware];return value!==undefined&&(typeof value!=='string'||value.length>10000);}))throw new Error('Invalid hardware.');}
+ for(const h of d.hardware??[]){if(!h||typeof h.id!=='string'||!h.id||typeof h.name!=='string'||!h.name.trim()||h.name.length>200||!hardwareTypes.includes(h.type)||typeof h.manufacturer!=='string'||h.manufacturer.length>200||h.quantity!==undefined&&(!Number.isSafeInteger(h.quantity)||h.quantity<1||h.quantity>99)||['model','releaseDate','notes','description','coverUrl'].some(key=>{const value=h[key as keyof Hardware];return value!==undefined&&(typeof value!=='string'||value.length>10000);}))throw new Error('Invalid hardware.');}
  if(JSON.stringify(d).length>1800000)throw new Error('Library exceeds the current storage limit. Download a backup before adding more data.');
 }

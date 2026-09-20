@@ -2,7 +2,7 @@
 
 ![GameAtlas Atlas Library emblem](public/icon-512.png)
 
-GameAtlas is an offline-first Windows collection app for games, consoles, and peripherals, with compact and standard game cards, score colours, filters, wishlists, descriptions, and online game lookup.
+GameAtlas is an offline-first Windows collection app for games and related collection items, with compact and standard game cards, score colours, filters, wishlists, descriptions, and online game lookup.
 
 ## Install and first run
 Each release provides two Windows downloads. Run `GameAtlas.Setup.VERSION.exe` for the normal installed edition, or place `GameAtlas.Portable.VERSION.exe` in a writable folder and run it without installing. Node.js is not required. Both executables are unsigned, so Windows may show an unknown-publisher notice.
@@ -25,7 +25,7 @@ Use the cog beside Add game to reopen Settings. The footer shortcut and all prop
 - Settings remain changeable at any time. Automatic modes make an initial baseline when setup/settings are saved.
 - The chosen folder may be a Google Drive folder. GameAtlas writes locally; your cloud-sync software handles uploading.
 - Restore always creates a safety backup in the app's internal backups folder, including in manual mode.
-- Backups contain all game, console, and peripheral records plus each unique thumbnail currently used by the collection. Replaced artwork and unused search previews are removed automatically and are not restored later.
+- Backups contain all game and hardware collection records plus each unique thumbnail currently used by the collection. Replaced artwork and unused search previews are removed automatically and are not restored later.
 - The newest 10 automatic and safety backups are kept in total across the selected folder and internal backups folder. Cleanup runs on launch and after backups; recognized backups from previous versions count toward the limit. Manual exports, unrelated files, and previously selected folders are left untouched.
 - Backup failures are reported after saving a game or in Settings; the game remains saved locally.
 
@@ -36,10 +36,10 @@ The dashboard includes completion progress, owned platform/genre breakdowns and 
 
 The dashboard also highlights highest-rated owned backlog games, the five most represented Studio credits with average scores, and wishlist priorities with released/upcoming/undated groups. Combined Studio credits stay as entered. Wishlist date groups use saved dates, not live release checks; multi-priority games appear in each selected priority.
 
-## Consoles and peripherals
-Use **Hardware** at the top of the app to browse consoles and peripherals in separate sections. Hardware cards show saved artwork and model information. Opening a card shows a clean read-only page with a larger image, description, manufacturer, model or variant, release date, and notes. Choose **Edit** to update those details, upload replacement artwork, or remove the item. Use **Add hardware** to record another console, special variant, or accessory.
+## Hardware collection
+Use **Hardware** at the top of the app to browse Consoles, Controllers, Peripherals, Emulation Consoles, VR, Books, and Misc in separate sections. Cards show saved artwork, model information, and quantity when you own more than one. Opening a card shows a clean read-only page with a larger image, description, manufacturer, model or variant, quantity, release date, and notes. Choose **Edit** to update those details, upload replacement artwork, or remove the item. Use **Add hardware** to record another collection item.
 
-Fresh installations start with an empty hardware collection. Complete backups and restores carry hardware records and their cached artwork with the games.
+Fresh installations start with an empty hardware collection. Complete backups and restores carry every hardware record, quantity, and cached artwork with the games.
 
 ## Missing thumbnails
 Settings > Check for missing artwork opens a dedicated window and closes Settings. Find artwork automatically retries missing downloads and looks up games without artwork. Only a single exact title match is applied automatically. Ambiguous or unavailable results remain in Choose artwork for the rest, where you can search another title or game link, preview a downloaded match with automatic source fallback, choose an image file, or leave the game missing for now.
@@ -47,7 +47,7 @@ Settings > Check for missing artwork opens a dedicated window and closes Setting
 The scan shows progress and can stop after the current request. It changes only artwork, preserving all game properties and descriptions. A safety backup is created before a batch; successful artwork changes follow your backup schedule. Locally selected images are copied into the library and included in complete backups. Existing downloaded artwork is skipped.
 
 ## Complete backups and restore
-Save complete backup creates one .gameatlas file containing a consistent SQLite snapshot and cached thumbnail bytes, preserving all game metadata, console and peripheral details, descriptions, notes, fields, choices, scores, links, and artwork references.
+Save complete backup creates one .gameatlas file containing a consistent SQLite snapshot and cached thumbnail bytes, preserving all game metadata, hardware details and quantities, descriptions, notes, fields, choices, scores, links, and artwork references.
 
 Manual backup first attempts missing linked images. If some remain unavailable, the app reports them and lets you cancel or explicitly save with missing thumbnails. Scheduled backups include what is cached at that moment and record missing images.
 
@@ -87,7 +87,7 @@ Use the sun/moon button beside Settings to switch between light and dark themes.
 
 ESRB ratings appear on game cards and in list view. Use the ESRB filter or sort from Everyone first / Mature first. Unknown, pending, and unrated entries remain at the end. Ratings can be edited in game details; verified imported ratings link to the ESRB listing and its platforms. Some original releases predate ESRB. A rating for one edition should not be assumed to cover every port.
 
-Use **Settings > Create Collection PDF** to export either the games you own physically or your entire game library. Both printable catalogs include console and peripheral totals on the cover. Consoles, peripherals, and games each begin on their own pages, use their own relevant numbering, and are grouped chronologically by release year. Hardware entries include cached artwork, manufacturer, model, release date, description, and notes. Game entries retain their pertinent details, notes, clickable website links, and page numbers.
+Use **Settings > Create Collection PDF** to export either the games you own physically or your entire game library. Both printable catalogs keep the cover focused on console, physical-game, and peripheral totals. Each non-empty hardware category and the games catalog begin on separate pages, use independent numbering, and are grouped chronologically by release year. Hardware entries include cached artwork, manufacturer, model, quantity, release date, description, and notes. Game entries retain their pertinent details, notes, clickable website links, and page numbers.
 
 Open any existing game and choose **Upload file to replace artwork** to use your own PNG, JPG, WebP, GIF, or AVIF image. GameAtlas stores a safe local copy with the library, so it is included in complete backups and restores.
 

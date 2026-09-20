@@ -10,7 +10,12 @@ try{
  const library={revision:1,fields:[],hardware:[
   {id:'console-old',name:'Nintendo Test System',type:'Console',manufacturer:'Nintendo',model:'Launch model',releaseDate:'2017-01-01',notes:'Boxed'},
   {id:'console-new',name:'Nintendo Test System 2',type:'Console',manufacturer:'Nintendo',releaseDate:'2021-01-01'},
-  {id:'peripheral',name:'Test controller',type:'Peripheral',manufacturer:'Nintendo',releaseDate:'2019-01-01'}
+  {id:'controller',name:'Test controller',type:'Controller',manufacturer:'Nintendo',releaseDate:'2018-01-01'},
+  {id:'peripheral',name:'Test accessory',type:'Peripheral',manufacturer:'Nintendo',quantity:4,releaseDate:'2019-01-01'},
+  {id:'emulation',name:'Test emulation system',type:'Emulation Console',manufacturer:'Test maker',releaseDate:'2020-01-01'},
+  {id:'vr',name:'Test VR headset',type:'VR',manufacturer:'Test maker',releaseDate:'2022-01-01'},
+  {id:'book',name:'Test book',type:'Book',manufacturer:'Test author',releaseDate:'2023-01-01'},
+  {id:'misc',name:'Test collectible',type:'Misc',manufacturer:'Test maker',releaseDate:'2024-01-01'}
  ],games:[
   {id:'2',values:{Title:'Zelda & Friends',Platform:['Switch'],Ownership:['Physical'],Score:9,ESRB:'E10+ — Everyone 10+',Status:['Must Play'],'Play Next On':['Steam','Switch 2'],Genre:['Adventure'],Studio:'Nintendo',Notes:'Keep <safe>','Release Date':'2021-11-12'},lookup:{sources:[{name:'Wikipedia',url:'https://en.wikipedia.org/wiki/Zelda'}]}},
   {id:'1',values:{Title:'Alpha',Ownership:['Digital'],Studio:'Studio','Release Date':'2017-03-03'}}
@@ -20,16 +25,20 @@ try{
  assert(html.includes('alt="GameAtlas icon"'));
  assert(html.includes('data:image/png;base64,'));
  assert(html.includes('<b>2</b><span>Consoles</span>'));
+ assert(html.includes('<b>4</b><span>Peripherals</span>'));
  assert(html.includes('<b>1</b><span>Total Physical Games Owned</span>'));
- assert(html.includes('<b>1</b><span>Peripherals</span>'));
+ assert(html.includes('<b>4</b><span>Peripherals</span>'));
  assert(html.indexOf('<span>Consoles</span>')<html.indexOf('<span>Total Physical Games Owned</span>')&&html.indexOf('<span>Total Physical Games Owned</span>')<html.indexOf('<span>Peripherals</span>'));
  assert(!html.includes('<span>Total games</span>')&&!html.includes('<span>Owned games</span>')&&!html.includes('<span>Scored games</span>'));
  assert(html.indexOf('Nintendo Test System')<html.indexOf('Your games'));
  assert(html.indexOf('2017')<html.indexOf('2021'));
- const peripheralSection=html.slice(html.indexOf('class="catalog peripherals-catalog"'),html.indexOf('class="catalog games-catalog"'));
+ const peripheralSection=html.slice(html.indexOf('peripheral-catalog'),html.indexOf('emulation-console-catalog'));
  const gameSection=html.slice(html.indexOf('class="catalog games-catalog"'));
  assert(peripheralSection.includes('<div class="number">1</div>')&&!peripheralSection.includes('<div class="number">2</div>'));
- assert(html.includes('.peripherals-catalog,.games-catalog{break-before:page;page-break-before:always}'));
+ assert(peripheralSection.includes('<b>Quantity</b><span>4</span>'));
+ for(const title of ['Controllers','Peripherals','Emulation Consoles','VR','Books','Misc'])assert(html.includes(`<h1 class="catalog-title">${title}</h1>`));
+ assert(html.indexOf('Consoles</h1>')<html.indexOf('Controllers</h1>')&&html.indexOf('Controllers</h1>')<html.indexOf('Peripherals</h1>')&&html.indexOf('Peripherals</h1>')<html.indexOf('Emulation Consoles</h1>')&&html.indexOf('Emulation Consoles</h1>')<html.indexOf('VR</h1>')&&html.indexOf('VR</h1>')<html.indexOf('Books</h1>')&&html.indexOf('Books</h1>')<html.indexOf('Misc</h1>')&&html.indexOf('Misc</h1>')<html.indexOf('Your games</h1>'));
+ assert(html.includes('.hardware-catalog~.hardware-catalog,.games-catalog{break-before:page;page-break-before:always}'));
  assert(gameSection.indexOf('2017')<gameSection.indexOf('2021'));
  assert(html.indexOf('<h2>Alpha</h2>')<html.indexOf('<h2>Zelda &amp; Friends</h2>'));
  assert(html.includes('Keep &lt;safe&gt;')&&!html.includes('Keep <safe>'));
@@ -39,6 +48,6 @@ try{
  assert.equal(selectPdfLibrary(library,'all').games.length,2);
  assert.equal(selectPdfLibrary(library,'physical').games.length,1);
  assert.equal(selectPdfLibrary(library,'physical').games[0].values.Title,'Zelda & Friends');
- assert.equal(selectPdfLibrary(library,'physical').hardware.length,3);
- console.log('PASS: PDF cover totals, chronological console/peripheral/game groups, independent peripheral numbering, section page separation, safe text and clickable links.');
+ assert.equal(selectPdfLibrary(library,'physical').hardware.length,8);
+ console.log('PASS: PDF cover totals, chronological category/game groups, independent category numbering, section page separation, safe text and clickable links.');
 }finally{rmSync(dir,{recursive:true,force:true});}
