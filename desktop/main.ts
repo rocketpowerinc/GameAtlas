@@ -31,9 +31,9 @@ const inflight=new Map<string,Promise<Response>>();
 async function artwork(raw:string):Promise<Response>{
  if(restoring)throw Error('Artwork is being restored.');
  const local=/^https:\/\/local-art\.gameatlas\.invalid\/[a-f0-9]{64}$/.test(raw);
- if(!local&&!safeArt(raw))return new Response('Unsupported artwork source',{status:400});
  const key=createHash('sha256').update(raw).digest('hex'); const path=join(app.getPath('userData'),'artwork',key);
- if(existsSync(path)&&existsSync(path+'.type')&&statSync(path).size>0)return new Response(readFileSync(path),{headers:{'Content-Type':readFileSync(path+'.type','utf8')}});
+ if(existsSync(path)&&existsSync(path+'.type')&&statSync(path).size>0){const type=readFileSync(path+'.type','utf8');if(['image/jpeg','image/png','image/webp','image/gif','image/avif'].includes(type))return new Response(readFileSync(path),{headers:{'Content-Type':type}});}
+ if(!local&&!safeArt(raw))return new Response('Unsupported artwork source',{status:400});
  if(local)throw Error('Choose the local image again or restore a complete backup.');
  if(inflight.has(key))return (await inflight.get(key)!).clone();
  const task=(async()=>{
@@ -241,6 +241,8 @@ app.whenReady().then(async()=>{
    await new Promise(r=>setTimeout(r,1500));
    mkdirSync(join(app.getPath('temp'),'gameatlas-verification'),{recursive:true});
    writeFileSync(join(app.getPath('temp'),'gameatlas-verification','welcome.png'),(await window.webContents.capturePage()).toPNG());
+   const smokeHardwareArtwork='https://manufacturer.example/test-console.png',smokeHardwareKey=createHash('sha256').update(smokeHardwareArtwork).digest('hex'),smokeHardwarePath=join(store.directory,'artwork',smokeHardwareKey);
+   writeFileSync(smokeHardwarePath,readFileSync(join(__dirname,'../public/icon-512.png')));writeFileSync(smokeHardwarePath+'.type','image/png');
    await window.webContents.executeJavaScript(`(async()=>{
     const wait=()=>new Promise(r=>setTimeout(r,200));
     const lib=(await window.gameAtlas.request('/api/library','GET')).data;
@@ -253,7 +255,7 @@ app.whenReady().then(async()=>{
     const setter=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;setter.call(select,'manual');select.dispatchEvent(new Event('change',{bubbles:true}));await wait();
     [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Finish setup')).click();await wait();
     if(!(await window.gameAtlas.getSettings()).setupComplete)throw Error('Setup not saved');
-    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,hardware:[{id:'hardware-test',name:'Test Console',type:'Console',manufacturer:'Test Maker',model:'Special Edition',releaseDate:'2020-01-01',notes:'Keep the original box.',description:'A test console description.'}],games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Must Play','Replay'],Badges:['Favorite','Play with Kids'],'Play Next On':['Steam','Playstation 5'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5,'Release Date':'2024-01-02',Notes:'Remember this test note.'},lookup:{description:'No description has been added for this game yet.',sources:[{name:'IGN',url:'https://www.ign.com/games/test-game'},{name:'Steam',url:'https://store.steampowered.com/app/2'}]}}]});
+    const saved=await window.gameAtlas.request('/api/library','PUT',{...lib,hardware:[{id:'hardware-test',name:'Test Console',type:'Console',manufacturer:'Test Maker',model:'Special Edition',releaseDate:'2020-01-01',notes:'Keep the original box.',description:'A test console description.',coverUrl:'https://manufacturer.example/test-console.png'}],games:[{id:'test',values:{Title:'Test game',Ownership:['Physical'],Status:['Must Play','Replay'],Badges:['Favorite','Play with Kids'],'Play Next On':['Steam','Playstation 5'],Platform:['Switch'],Genre:['Adventure'],Studio:'Test Studio',Score:8.5,'Release Date':'2024-01-02',Notes:'Remember this test note.'},lookup:{description:'No description has been added for this game yet.',sources:[{name:'IGN',url:'https://www.ign.com/games/test-game'},{name:'Steam',url:'https://store.steampowered.com/app/2'}]}}]});
     if(!saved.ok)throw Error('Save failed');
     const rejected=await window.gameAtlas.request('/api/library','PUT',{...saved.data,fields:[]});
     if(rejected.ok)throw Error('Property editing was accepted');
@@ -293,7 +295,7 @@ app.whenReady().then(async()=>{
     if(!document.querySelector('.dashboard-filter')||document.querySelectorAll('.game-card').length!==1)throw Error('Dashboard drill-down failed');
     [...document.querySelectorAll('button')].find(b=>b.textContent==='Show all games').click();
     [...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Hardware').click();await wait();
-    if(!document.querySelector('.hardware-collection')||document.querySelectorAll('.hardware-card').length!==1||!document.body.textContent.includes('Test Console'))throw Error('Hardware collection missing');
+    const hardwareImage=document.querySelector('.hardware-card img');if(!document.querySelector('.hardware-collection')||document.querySelectorAll('.hardware-card').length!==1||!document.body.textContent.includes('Test Console')||!hardwareImage?.complete||!hardwareImage.naturalWidth)throw Error('Hardware collection or cached artwork missing');
     document.querySelector('.hardware-card').click();await wait();
     if(!document.querySelector('.hardware-page')||!document.body.textContent.includes('Keep the original box.')||!document.body.textContent.includes('Released 2020-01-01'))throw Error('Hardware detail page missing');
     document.querySelector('.game-page-edit-top').click();await wait();
