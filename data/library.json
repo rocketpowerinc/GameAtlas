@@ -1,0 +1,219 @@
+{
+  "format": "gameatlas-v1",
+  "fields": [
+    {
+      "id": "Title",
+      "name": "Title",
+      "type": "text",
+      "options": []
+    },
+    {
+      "id": "Platform",
+      "name": "Platform",
+      "type": "multi_select",
+      "options": [
+        "NES",
+        "SNES",
+        "N64",
+        "Gamecube",
+        "Wii",
+        "Wiiu",
+        "Switch",
+        "Switch 2",
+        "Gameboy/GameBoy Color",
+        "Gameboy Advance",
+        "Nintendo DS",
+        "Nintendo 3ds",
+        "Sega Genesis",
+        "Sega Dreamcast",
+        "Sega Gamegear",
+        "Playstation 1",
+        "Playstation 2",
+        "Playstation 3",
+        "Playstation 4",
+        "Playstation VR",
+        "Playstation 5",
+        "PSP",
+        "PS Vita",
+        "Xbox (OG)",
+        "Xbox 360",
+        "Xbox One",
+        "Xbox Series X",
+        "Steam"
+      ]
+    },
+    {
+      "id": "Ownership",
+      "name": "Ownership",
+      "type": "multi_select",
+      "options": [
+        "Physical",
+        "Digital",
+        "Wish List"
+      ]
+    },
+    {
+      "id": "Genre",
+      "name": "Genre",
+      "type": "multi_select",
+      "options": [
+        "Action-Adventure",
+        "Arcade",
+        "Beat 'em up",
+        "Fighting",
+        "First-person shooter",
+        "Fitness",
+        "Horror",
+        "Metroidvania",
+        "Monster tamer",
+        "Music",
+        "Party",
+        "Platform",
+        "Programming",
+        "Puzzle",
+        "Racing",
+        "Real-time strategy",
+        "Roguelike",
+        "Sandbox",
+        "Sports",
+        "Stealth",
+        "Survival",
+        "Third-person shooter",
+        "Tower defense",
+        "Turn-based tactics",
+        "Cozy",
+        "Simulator",
+        "Factory",
+        "JRPG",
+        "RPG",
+        "Soulslike",
+        "Hack-and-Slash",
+        "Point and Click",
+        "Co-Op",
+        "Misc",
+        "Tycoon"
+      ]
+    },
+    {
+      "id": "Studio",
+      "name": "Studio",
+      "type": "text",
+      "options": []
+    },
+    {
+      "id": "Release Date",
+      "name": "Release Date",
+      "type": "date",
+      "options": []
+    },
+    {
+      "id": "Score",
+      "name": "Score",
+      "type": "number",
+      "options": []
+    },
+    {
+      "id": "ESRB",
+      "name": "ESRB rating",
+      "type": "text",
+      "options": [
+        "EC — Early Childhood",
+        "E — Everyone",
+        "E10+ — Everyone 10+",
+        "T — Teen",
+        "M — Mature 17+",
+        "AO — Adults Only 18+",
+        "K-A — Kids to Adults (legacy)",
+        "RP — Rating Pending",
+        "Not rated",
+        "Pre-ESRB release",
+        "Unknown"
+      ]
+    },
+    {
+      "id": "Status",
+      "name": "Status",
+      "type": "multi_select",
+      "options": [
+        "Backlog",
+        "Currently Playing",
+        "Complete",
+        "Replay",
+        "Archived"
+      ]
+    },
+    {
+      "id": "Play Next On",
+      "name": "Replay On",
+      "type": "multi_select",
+      "options": [
+        "Steam",
+        "Switch 2",
+        "Playstation 5",
+        "Xbox Series X",
+        "Switch",
+        "Playstation VR",
+        "Xbox One",
+        "Playstation 4",
+        "Wiiu",
+        "PS Vita",
+        "Nintendo 3ds",
+        "Wii",
+        "Playstation 3",
+        "Xbox 360",
+        "PSP",
+        "Nintendo DS",
+        "Xbox (OG)",
+        "Gamecube",
+        "Gameboy Advance",
+        "Playstation 2",
+        "Sega Dreamcast",
+        "Gameboy/GameBoy Color",
+        "N64",
+        "Playstation 1",
+        "Sega Gamegear",
+        "SNES",
+        "Sega Genesis",
+        "NES"
+      ]
+    },
+    {
+      "id": "Badges",
+      "name": "Badges",
+      "type": "multi_select",
+      "options": [
+        "Hidden Gem",
+        "Favorite",
+        "Critically Acclaimed",
+        "Play with Kids"
+      ]
+    },
+    {
+      "id": "Notes",
+      "name": "Notes",
+      "type": "text",
+      "options": []
+    },
+    {
+      "id": "Wishlist Priority",
+      "name": "Wishlist Priority",
+      "type": "multi_select",
+      "options": [
+        "Must have",
+        "Someday"
+      ]
+    },
+    {
+      "id": "Wishlists",
+      "name": "Wishlists",
+      "type": "multi_select",
+      "options": [
+        "Main wishlist",
+        "Gift ideas"
+      ]
+    }
+  ],
+  "games": [],
+  "hardware": [],
+  "revision": 1
+}

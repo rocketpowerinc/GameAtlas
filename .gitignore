@@ -1,0 +1,17 @@
+# Dependencies and generated outputs
+/node_modules/
+/dist/
+/desktop-dist/
+/release/
+/coverage/
+/output/pdf/
+/tmp/pdfs/
+/BACKUPS/
+*.gameatlas
+*.tsbuildinfo
+
+# Local settings
+.env*
+*.pem
+*.log
+.DS_Store
