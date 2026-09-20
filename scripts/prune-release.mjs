@@ -14,4 +14,4 @@ for(const entry of readdirSync(release,{withFileTypes:true})){
  rmSync(target,{recursive:true,force:true});
 }
 
-console.log(`Kept only ${[...keep].map(basename).join(' and ')}`);
+console.log(`Kept only ${[...keep].map(name=>basename(name)).join(' and ')}`);
