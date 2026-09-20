@@ -73,7 +73,7 @@ Use Node.js 22.13 or newer on Windows:
 - npm start
 - npm run dist (builds both the installer and portable executable)
 
-Generated outputs are ignored by Git. Installers are in release. Test fixtures contain generic sample games and are not packaged.
+Generated outputs are ignored by Git. `npm run dist` clears previous generated builds and PDF previews before packaging, then keeps only the current installer and portable executable in `release`. Use `npm run clean:generated` to remove `release`, `output`, `dist`, and `desktop-dist` manually without touching `node_modules`. Test fixtures contain generic sample games and are not packaged.
 
 The renderer uses a sandbox, context isolation, and a limited validated preload interface. No local HTTP server is used.
 The repository contains the Windows application. React, HTML, CSS, and Vite build its embedded Electron interface; they are required desktop components. There is no hosted application, deployment configuration, or web server in this source tree. The `BACKUPS` folder and `.gameatlas` files are ignored by Git and must remain outside this public repository. The app does not synchronize personal backups with GitHub.

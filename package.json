@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-game-lookup.mjs && node scripts/test-library-shape.mjs && node scripts/test-store.mjs && node scripts/test-backup.mjs && node scripts/test-preferences.mjs && node scripts/test-updates.mjs && node scripts/test-portable.mjs && node scripts/test-artwork-scan.mjs && node scripts/test-description-scan.mjs && node scripts/test-dashboard.mjs && node scripts/test-esrb.mjs && node scripts/test-pdf-export.mjs",
     "test:desktop": "electron . --smoke-test",
-    "dist": "npm run build && electron-builder --win --x64",
+    "clean:generated": "node scripts/clean-generated.mjs",
+    "dist": "npm run clean:generated && npm run build && electron-builder --win --x64 && node scripts/prune-release.mjs",
     "build:branding": "electron scripts/build-branding.cjs"
   },
   "dependencies": {},
