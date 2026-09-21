@@ -1,9 +1,9 @@
 import {decodeHtml} from './game-lookup';
 export type Field = {id:string;name:string;type:'text'|'multi_select'|'number'|'date'|'url'|'checkbox';options:string[]};
 export type Game = {id:string;values:Record<string,string|number|boolean|string[]>;esrb?:{url:string;title:string;platforms:string[];checkedAt:string};sourceUrl?:string;lookup?:{sources:{name:string;url:string}[];scoreSource?:string;releaseNote?:string;coverUrl?:string;description?:string}};
-export const hardwareTypes=['Console','Emulation Console','VR','Controller','Mobile','Peripheral','Book','Misc'] as const;
+export const hardwareTypes=['Console','Emulation Console','VR','Controller','Mobile','Peripheral','Book','Headphones','Misc'] as const;
 export type HardwareType=typeof hardwareTypes[number];
-export const hardwareTypeLabels:Record<HardwareType,string>={Console:'Consoles',Controller:'Controllers',Mobile:'Mobile',Peripheral:'Peripherals','Emulation Console':'Emulation Consoles',VR:'VR',Book:'Books',Misc:'Misc'};
+export const hardwareTypeLabels:Record<HardwareType,string>={Console:'Consoles',Controller:'Controllers',Mobile:'Mobile',Peripheral:'Peripherals','Emulation Console':'Emulation Consoles',VR:'VR',Book:'Books',Headphones:'Headphones',Misc:'Misc'};
 export type Hardware = {id:string;name:string;type:HardwareType;manufacturer:string;model?:string;quantity?:number;releaseDate?:string;notes?:string;description?:string;coverUrl?:string};
 export type Library = {fields:Field[];games:Game[];hardware?:Hardware[];revision:number};
 export const display = (v:unknown):string => Array.isArray(v)?v.join(', '):v===undefined||v===null?'':String(v);
