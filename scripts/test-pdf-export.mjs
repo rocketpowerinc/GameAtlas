@@ -8,7 +8,7 @@ const {collectionPdfHtml,selectPdfLibrary}=require('../desktop-dist/pdf-export.c
 const dir=mkdtempSync(join(tmpdir(),'gameatlas-pdf-test-'));
 try{
  const library={revision:1,fields:[],hardware:[
-  {id:'console-old',name:'Nintendo Test System',type:'Console',manufacturer:'Nintendo',model:'Launch model',releaseDate:'2017-01-01',notes:'Boxed'},
+  {id:'console-old',name:'Nintendo Test System',type:'Console',manufacturer:'Nintendo',model:'Launch model',releaseDate:'2017-01-01',description:'Hardware <safe> description',notes:'Boxed'},
   {id:'console-new',name:'Nintendo Test System 2',type:'Console',manufacturer:'Nintendo',releaseDate:'2021-01-01'},
   {id:'controller',name:'Test controller',type:'Controller',manufacturer:'Nintendo',releaseDate:'2018-01-01'},
   {id:'mobile',name:'Test mobile controller',type:'Mobile',manufacturer:'Test maker',releaseDate:'2018-06-01'},
@@ -42,7 +42,8 @@ try{
  assert(html.includes('.hardware-catalog~.hardware-catalog,.games-catalog{break-before:page;page-break-before:always}'));
  assert(gameSection.indexOf('2017')<gameSection.indexOf('2021'));
  assert(html.indexOf('<h2>Alpha</h2>')<html.indexOf('<h2>Zelda &amp; Friends</h2>'));
- assert(html.includes('Keep &lt;safe&gt;')&&!html.includes('Keep <safe>'));
+ assert(html.includes('Hardware &lt;safe&gt; description')&&!html.includes('Hardware <safe> description'));
+ assert(!html.includes('Keep &lt;safe&gt;')&&!html.includes('Boxed')&&!html.includes('<b>Notes:</b>'));
  assert(html.includes('href="https://en.wikipedia.org/wiki/Zelda"'));
  assert(html.includes('E10+ - Everyone 10+'));
  assert(html.includes('<b>Replay on</b><span>Steam, Switch 2</span>'));
@@ -50,5 +51,5 @@ try{
  assert.equal(selectPdfLibrary(library,'physical').games.length,1);
  assert.equal(selectPdfLibrary(library,'physical').games[0].values.Title,'Zelda & Friends');
  assert.equal(selectPdfLibrary(library,'physical').hardware.length,10);
- console.log('PASS: PDF cover totals, chronological category/game groups, independent category numbering, section page separation, safe text and clickable links.');
+ console.log('PASS: PDF cover totals, chronological category/game groups, independent category numbering, section page separation, omitted notes, safe text and clickable links.');
 }finally{rmSync(dir,{recursive:true,force:true});}
