@@ -72,6 +72,7 @@ import { Empty, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   display,
+  conditionOptions,
   dedupeSources,
   orderedSources,
   preferredSourceUrl,
@@ -97,6 +98,7 @@ const badgeDefinitions = [
 const gameBadges=(game:Game)=>Array.isArray(game.values.Badges)?game.values.Badges as string[]:[];
 const badgesFor=(game:Game)=>badgeDefinitions.filter(badge=>gameBadges(game).includes(badge.value));
 const badgeValues=new Set<string>(badgeDefinitions.map(badge=>badge.value));
+const conditionDescriptions:Record<string,string>={Reproduction:'An unofficial reproduction cartridge or disc.'};
 function CardBadges({game}:{game:Game}){
   const badges=badgesFor(game);
   return <div className="game-card-badges" aria-label={badges.length?'Game badges':undefined} aria-hidden={badges.length?undefined:true}>{badges.map(({value,label,tone,Icon})=><span key={value} className={`game-badge-icon game-badge-${tone}`} role="img" title={label} aria-label={label}><Icon size={14} aria-hidden="true"/><span className="game-badge-tooltip" role="tooltip" aria-hidden="true">{label}</span></span>)}</div>;
@@ -196,6 +198,7 @@ export default function Home() {
     [genre, setGenre] = useState('All genres'),
     [status, setStatus] = useState('All statuses'),
     [badge, setBadge] = useState('All badges'),
+    [conditionFilter, setConditionFilter] = useState('Condition: Any'),
     [notesFilter, setNotesFilter] = useState('Notes: Any'),
     [esrb, setEsrb] = useState('All ESRB ratings'),
     [sort, setSort] = useState('Title A–Z'),
@@ -537,7 +540,7 @@ export default function Home() {
               setView('All games');
               setPlatform('All platforms');
               setGenre('All genres');
-              setStatus('All statuses');setBadge('All badges');setNotesFilter('Notes: Any');setEsrb('All ESRB ratings');
+              setStatus('All statuses');setBadge('All badges');setConditionFilter('Condition: Any');setNotesFilter('Notes: Any');setEsrb('All ESRB ratings');
               return { query: q };
             },
           },
@@ -549,6 +552,8 @@ export default function Home() {
   }, []);
   const fields = data?.fields ?? [],
     games = data?.games ?? [];
+  const conditionField=fields.find(field=>field.id==='Condition'||field.name.trim().toLowerCase()==='condition');
+  const conditionId=conditionField?.id??'Condition';
   const options = (id: string) =>
     Array.from(
       new Set([
@@ -575,6 +580,10 @@ export default function Home() {
             (genre === 'All genres' || contains(g, 'Genre', genre)) &&
             (status === 'All statuses' || contains(g, 'Status', status)) &&
             (badge === 'All badges' || contains(g, 'Badges', badge)) &&
+            (conditionFilter === 'Condition: Any' ||
+              (conditionFilter === 'Condition: None'
+                ? contains(g,'Ownership','Physical') && (!Array.isArray(g.values[conditionId]) || !(g.values[conditionId] as string[]).length)
+                : contains(g,'Ownership','Physical') && contains(g,conditionId,conditionFilter.replace(/^Condition: /,'')))) &&
             (notesFilter === 'Notes: Any' ||
               (notesFilter === 'Notes: Present' && display(g.values.Notes).trim().length > 0) ||
               (notesFilter === 'Notes: None' && display(g.values.Notes).trim().length === 0)) &&
@@ -591,10 +600,10 @@ export default function Home() {
               : title(a, fields).localeCompare(title(b, fields)) *
                 (sort === 'Title Z–A' ? -1 : 1),
         ),
-    [data, view, query, platform, genre, status, badge, notesFilter, esrb, sort,dashboardFilter],
+    [data, view, query, platform, genre, status, badge, conditionFilter, conditionId, notesFilter, esrb, sort,dashboardFilter],
   );
   const gamePageDetailFields=draft?fields.filter(field=>
-    !['Title','Studio','Release Date','Platform','Ownership','Genre','Status','Badges','Play Next On','Score','ESRB','Link','Notes','Wishlist Priority'].includes(field.id)&&
+    !['Title','Studio','Release Date','Platform','Ownership','Genre','Status','Badges','Play Next On','Score','ESRB','Link','Notes','Wishlist Priority'].includes(field.id)&&field.id!==conditionId&&
     display(draft.values[field.id]).trim()!==''
   ):[];
   const gamePageSources=draft?orderedSources(draft.lookup?.sources).filter(source=>safeLink(source.url)):[];
@@ -624,7 +633,7 @@ export default function Home() {
           </button>
         </div>
       </header>
-      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setBadge('All badges');setNotesFilter('Notes: Any');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
+      {hardware&&data?<HardwareCollection library={data} onReload={reload} onBack={()=>setHardware(false)}/>:dashboard&&data?<CollectionDashboard library={data} onAdd={addGame} onGame={openGame} onBrowse={(label,selected)=>{setDashboardFilter({label,ids:selected.map(g=>g.id)});setDashboard(false);setView('All games');setQuery('');setPlatform('All platforms');setGenre('All genres');setStatus('All statuses');setBadge('All badges');setConditionFilter('Condition: Any');setNotesFilter('Notes: Any');setEsrb('All ESRB ratings');setLimit(48);}}/>:<section className="collection">
         <div className="collection-heading">
           <div>
             <p className="eyebrow">YOUR COLLECTION, ALL TOGETHER</p>
@@ -725,6 +734,7 @@ export default function Home() {
             label="Filter status"
           />
           <Pick value={badge} onChange={setBadge} options={['All badges',...badgeDefinitions.map(item=>item.value)]} label="Filter badge"/>
+          <Pick value={conditionFilter} onChange={setConditionFilter} options={['Condition: Any',...conditionOptions.map(value=>`Condition: ${value}`),'Condition: None']} label="Filter condition"/>
           <Pick value={notesFilter} onChange={setNotesFilter} options={['Notes: Any','Notes: Present','Notes: None']} label="Filter notes"/>
           <Pick value={esrb} onChange={setEsrb} options={['All ESRB ratings',...esrbOptions]} label="Filter by ESRB rating"/>
           <Pick
@@ -749,14 +759,14 @@ export default function Home() {
             {(query ||
               platform !== 'All platforms' ||
               genre !== 'All genres' ||
-              status !== 'All statuses' || badge !== 'All badges' || notesFilter !== 'Notes: Any' || esrb !== 'All ESRB ratings') && (
+              status !== 'All statuses' || badge !== 'All badges' || conditionFilter !== 'Condition: Any' || notesFilter !== 'Notes: Any' || esrb !== 'All ESRB ratings') && (
               <button
                 className="text-button"
                 onClick={() => {
                   setQuery('');
                   setPlatform('All platforms');
                   setGenre('All genres');
-                  setStatus('All statuses');setBadge('All badges');setNotesFilter('Notes: Any');setEsrb('All ESRB ratings');
+                  setStatus('All statuses');setBadge('All badges');setConditionFilter('Condition: Any');setNotesFilter('Notes: Any');setEsrb('All ESRB ratings');
                 }}
               >
                 Clear filters
@@ -784,7 +794,7 @@ export default function Home() {
               genre !== 'All genres' ||
               status !== 'All statuses' ||
               badge !== 'All badges' ||
-              notesFilter !== 'Notes: Any' ||
+              conditionFilter !== 'Condition: Any' || notesFilter !== 'Notes: Any' ||
               esrb !== 'All ESRB ratings'
                 ? 'Try a different search or clear your filters.'
                 : 'Add a game to start this part of your collection.'}
@@ -887,6 +897,7 @@ export default function Home() {
                   {display(draft.values.Genre)&&<span>{display(draft.values.Genre)}</span>}
                   {display(draft.values.Status)&&<span>{display(draft.values.Status)}</span>}
                   {display(draft.values['Play Next On'])&&<span>Replay on: {display(draft.values['Play Next On'])}</span>}
+                  {contains(draft,'Ownership','Physical')&&(Array.isArray(draft.values[conditionId])?draft.values[conditionId] as string[]:[]).map(value=><span key={value} title={conditionDescriptions[value]}>Condition: {value}</span>)}
                   {gameBadges(draft).filter(tag=>!badgeValues.has(tag)).map(tag=><span key={tag}>{tag}</span>)}
                   {display(draft.values['Wishlist Priority'])&&<span>Priority: {display(draft.values['Wishlist Priority'])}</span>}
                   {draft.values.Score!==''&&draft.values.Score!==undefined&&<span>Score {display(draft.values.Score)} / 10</span>}
@@ -1053,7 +1064,7 @@ export default function Home() {
                 </div>
               </section>
               <div className="field-grid">
-                {fields.filter(field=>field.id!=='Title'&&(field.id!=='Play Next On'||contains(draft,'Status','Replay'))).map((f) => (
+                {fields.filter(field=>field.id!=='Title'&&(field.id!=='Play Next On'||contains(draft,'Status','Replay'))&&(field.id!==conditionId||contains(draft,'Ownership','Physical'))).map((f) => (
                   <div
                     className={`field ${f.type === 'multi_select' || f.id === 'Notes' ? 'wide' : ''}`}
                     key={f.id}
@@ -1064,6 +1075,13 @@ export default function Home() {
                         const values=gameBadges(draft),checked=values.includes(value);
                         return <label className={`game-badge-choice game-badge-${tone} ${checked?'selected':''}`} key={value}><Checkbox checked={checked} onCheckedChange={selected=>setDraft({...draft,values:{...draft.values,Badges:selected?[...values,value]:values.filter(badge=>badge!==value)}})}/><span className="game-badge-icon"><Icon size={18}/></span><span><strong>{label}</strong><small>{description}</small></span></label>;
                       })}</div>
+                    ) : f.id === conditionId ? (
+                      <div className="choices condition-picker" role="group" aria-label="Condition">
+                        {conditionOptions.map((o) => {
+                          const values=Array.isArray(draft.values[conditionId])?draft.values[conditionId] as string[]:[];
+                          return <label className="choice condition-choice" key={o} title={conditionDescriptions[o]}><Checkbox checked={values.includes(o)} onCheckedChange={checked=>setDraft({...draft,values:{...draft.values,[conditionId]:checked?[...values,o]:values.filter(value=>value!==o)}})}/><span><strong>{o}</strong>{conditionDescriptions[o]&&<small>{conditionDescriptions[o]}</small>}</span></label>;
+                        })}
+                      </div>
                     ) : f.type === 'multi_select' ? (
                       <div className="choices" role="group" aria-label={f.name}>
                         {Array.from(
@@ -1084,14 +1102,16 @@ export default function Home() {
                                 const values = Array.isArray(draft.values[f.id])
                                   ? (draft.values[f.id] as string[])
                                   : [];
+                                const nextValues:Game['values']={
+                                  ...draft.values,
+                                  [f.id]: checked
+                                    ? [...values, o]
+                                    : values.filter((v) => v !== o),
+                                };
+                                if(f.id==='Ownership'&&o==='Physical'&&!checked)nextValues[conditionId]=[];
                                 setDraft({
                                   ...draft,
-                                  values: {
-                                    ...draft.values,
-                                    [f.id]: checked
-                                      ? [...values, o]
-                                      : values.filter((v) => v !== o),
-                                  },
+                                  values: nextValues,
                                 });
                               }}
                             />

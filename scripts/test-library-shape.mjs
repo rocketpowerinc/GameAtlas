@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-const {withCurrentLibraryShape,preferredSourceUrl,dedupeSources,orderedSources,playNextOnOptions}=createRequire(import.meta.url)('../desktop-dist/library.cjs');
+const {withCurrentLibraryShape,preferredSourceUrl,dedupeSources,orderedSources,playNextOnOptions,conditionOptions}=createRequire(import.meta.url)('../desktop-dist/library.cjs');
 
 const original={revision:4,fields:[
  {id:'title',name:'Title',type:'text',options:[]},
@@ -14,9 +14,10 @@ const original={revision:4,fields:[
  {id:'two',values:{title:'Preserved',status:['Replay'],notes:'Replay on Steam and PS5'}}
 ]};
 const next=withCurrentLibraryShape(original);
-assert.deepEqual(next.fields.map(field=>field.name),['Title','Wishlist Priority','Status','Replay On','Notes']);
+assert.deepEqual(next.fields.map(field=>field.name),['Title','Wishlist Priority','Status','Replay On','Notes','Condition']);
 assert.deepEqual(next.fields[1].options,['Must have','Someday']);
 assert.deepEqual(next.fields.find(field=>field.id==='Play Next On').options,playNextOnOptions);
+assert.deepEqual(next.fields.find(field=>field.id==='Condition').options,conditionOptions);
 assert.equal(next.games[0].values['legacy-link'],undefined);
 assert.equal(next.games[0].values.price,undefined);
 assert.deepEqual(next.games[0].values.priority,['Someday']);
@@ -38,4 +39,4 @@ assert.equal(preferredSourceUrl([{name:'Steam',url:'steam'},{name:'HowLongToBeat
 assert.equal(preferredSourceUrl([{name:'Steam',url:'steam'}]),'');
 assert.deepEqual(dedupeSources([{name:'Wikipedia',url:'https://en.wikipedia.org/?curid=1'},{name:'HowLongToBeat',url:'hltb'},{name:'Wikipedia',url:'https://en.wikipedia.org/wiki/Example'}]),[{name:'HowLongToBeat',url:'hltb'},{name:'Wikipedia',url:'https://en.wikipedia.org/wiki/Example'}]);
 assert.deepEqual(orderedSources([{name:'Website',url:'site'},{name:'PriceCharting',url:'price'},{name:'Wikipedia',url:'wiki'},{name:'IGN',url:'ign'},{name:'HowLongToBeat',url:'hltb'},{name:'Steam',url:'steam'},{name:'YouTube',url:'youtube'}]).map(source=>source.name),['YouTube','IGN','Steam','Wikipedia','HowLongToBeat','PriceCharting','Website']);
-console.log('PASS: current properties, exact Replay on Steam migration, preserved compound notes, retired fields, source cleanup, and card link priority.');
+console.log('PASS: current properties, physical Condition choices, exact Replay on Steam migration, preserved compound notes, retired fields, source cleanup, and card link priority.');

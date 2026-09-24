@@ -53,6 +53,18 @@
       ]
     },
     {
+      "id": "Condition",
+      "name": "Condition",
+      "type": "multi_select",
+      "options": [
+        "Mint",
+        "Cartridge/Disc Only",
+        "Reproduction",
+        "Limited Run",
+        "Special Edition"
+      ]
+    },
+    {
       "id": "Genre",
       "name": "Genre",
       "type": "multi_select",

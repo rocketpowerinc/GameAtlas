@@ -10,6 +10,7 @@ export const display = (v:unknown):string => Array.isArray(v)?v.join(', '):v===u
 export const playNextOnOptions=[
  'Steam','Switch 2','Playstation 5','Xbox Series X','Switch','Playstation VR','Xbox One','Playstation 4','Wiiu','PS Vita','Nintendo 3ds','Wii','Playstation 3','Xbox 360','PSP','Nintendo DS','Xbox (OG)','Gamecube','Gameboy Advance','Playstation 2','Sega Dreamcast','Gameboy/GameBoy Color','N64','Playstation 1','Sega Gamegear','SNES','Sega Genesis','NES'
 ];
+export const conditionOptions=['Mint','Cartridge/Disc Only','Reproduction','Limited Run','Special Edition'];
 export function dedupeSources(sources:NonNullable<Game['lookup']>['sources']|undefined){
  const byName=new Map<string,{name:string;url:string}>();
  for(const source of sources??[]){if(typeof source?.name!=='string'||typeof source?.url!=='string'||!source.name.trim()||!source.url.trim())continue;const key=source.name.trim().toLowerCase();if(byName.has(key))byName.delete(key);byName.set(key,{name:source.name.trim(),url:source.url.trim()});}
@@ -31,6 +32,9 @@ export function withCurrentLibraryShape(library:Library):Library{
  const linkIds=next.fields.filter(field=>field.name.trim().toLowerCase()==='link'||field.id.trim().toLowerCase()==='link').map(field=>field.id);
  const priority=next.fields.find(field=>field.name.trim().toLowerCase()==='wishlist priority'||field.id.trim().toLowerCase()==='wishlist priority');
  next.fields=next.fields.filter(field=>!retired.has(field.id)).map(field=>field.id===priority?.id?{...field,options:field.options.filter(option=>option.trim().toLowerCase()!=='want soon')}:field);
+ let condition=next.fields.find(field=>field.name.trim().toLowerCase()==='condition'||field.id.trim().toLowerCase()==='condition');
+ if(!condition){condition={id:'Condition',name:'Condition',type:'multi_select',options:conditionOptions};const ownershipIndex=next.fields.findIndex(field=>field.name.trim().toLowerCase()==='ownership'||field.id.trim().toLowerCase()==='ownership');next.fields.splice(ownershipIndex<0?next.fields.length:ownershipIndex+1,0,condition);}
+ else {condition.name='Condition';condition.type='multi_select';condition.options=[...conditionOptions];}
  let playNext=next.fields.find(field=>field.name.trim().toLowerCase()==='play next on'||field.id.trim().toLowerCase()==='play next on');
  if(!playNext){playNext={id:'Play Next On',name:'Replay On',type:'multi_select',options:playNextOnOptions};const statusIndex=next.fields.findIndex(field=>field.name.trim().toLowerCase()==='status'||field.id.trim().toLowerCase()==='status');next.fields.splice(statusIndex<0?next.fields.length:statusIndex+1,0,playNext);}
  else {playNext.name='Replay On';playNext.type='multi_select';playNext.options=[...playNextOnOptions,...playNext.options.filter(option=>!playNextOnOptions.some(standard=>standard.toLowerCase()===option.toLowerCase()))];}

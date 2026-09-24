@@ -19,8 +19,8 @@ try{
   {id:'headphones',name:'Test headphones',type:'Headphones',manufacturer:'Test maker',releaseDate:'2023-06-01'},
   {id:'misc',name:'Test collectible',type:'Misc',manufacturer:'Test maker',releaseDate:'2024-01-01'}
  ],games:[
-  {id:'2',values:{Title:'Zelda & Friends',Platform:['Switch'],Ownership:['Physical'],Score:9,ESRB:'E10+ — Everyone 10+',Status:['Must Play'],'Play Next On':['Steam','Switch 2'],Genre:['Adventure'],Studio:'Nintendo',Notes:'Keep <safe>','Release Date':'2021-11-12'},lookup:{sources:[{name:'Wikipedia',url:'https://en.wikipedia.org/wiki/Zelda'}]}},
-  {id:'1',values:{Title:'Alpha',Ownership:['Digital'],Studio:'Studio','Release Date':'2017-03-03'}}
+  {id:'2',values:{Title:'Zelda & Friends',Platform:['Switch'],Ownership:['Physical'],Condition:['Mint','Special Edition'],Score:9,ESRB:'E10+ — Everyone 10+',Status:['Must Play'],'Play Next On':['Steam','Switch 2'],Genre:['Adventure'],Studio:'Nintendo',Notes:'Keep <safe>','Release Date':'2021-11-12'},lookup:{sources:[{name:'Wikipedia',url:'https://en.wikipedia.org/wiki/Zelda'}]}},
+  {id:'1',values:{Title:'Alpha',Ownership:['Digital'],Condition:['Limited Run'],Studio:'Studio','Release Date':'2017-03-03'}}
  ]};
  const html=collectionPdfHtml(library,dir,new Date('2026-09-15T12:00:00Z'),'Entire Library Catalog');
  assert(html.includes('Entire Library Catalog'));
@@ -47,6 +47,8 @@ try{
  assert(html.includes('href="https://en.wikipedia.org/wiki/Zelda"'));
  assert(html.includes('E10+ - Everyone 10+'));
  assert(html.includes('<b>Replay on</b><span>Steam, Switch 2</span>'));
+ assert(html.includes('<b>Condition</b><span>Mint, Special Edition</span>'));
+ assert(!html.includes('<b>Condition</b><span>Limited Run</span>'));
  assert.equal(selectPdfLibrary(library,'all').games.length,2);
  assert.equal(selectPdfLibrary(library,'physical').games.length,1);
  assert.equal(selectPdfLibrary(library,'physical').games[0].values.Title,'Zelda & Friends');
