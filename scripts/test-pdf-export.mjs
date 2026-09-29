@@ -14,6 +14,7 @@ try{
   {id:'mobile',name:'Test mobile controller',type:'Mobile',manufacturer:'Test maker',releaseDate:'2018-06-01'},
   {id:'peripheral',name:'Test accessory',type:'Peripheral',manufacturer:'Nintendo',quantity:4,releaseDate:'2019-01-01'},
   {id:'emulation',name:'Test emulation system',type:'Emulation Console',manufacturer:'Test maker',releaseDate:'2020-01-01'},
+  {id:'cloud',name:'Test cloud system',type:'Cloud Console',manufacturer:'Test maker',releaseDate:'2021-01-01'},
   {id:'vr',name:'Test VR headset',type:'VR',manufacturer:'Test maker',releaseDate:'2022-01-01'},
   {id:'book',name:'Test book',type:'Book',manufacturer:'Test author',releaseDate:'2023-01-01'},
   {id:'headphones',name:'Test headphones',type:'Headphones',manufacturer:'Test maker',releaseDate:'2023-06-01'},
@@ -37,8 +38,8 @@ try{
  const gameSection=html.slice(html.indexOf('class="catalog games-catalog"'));
  assert(peripheralSection.includes('<div class="number">1</div>')&&!peripheralSection.includes('<div class="number">2</div>'));
  assert(peripheralSection.includes('<b>Quantity</b><span>4</span>'));
- for(const title of ['Controllers','Mobile','Peripherals','Emulation Consoles','VR','Books','Headphones','Misc'])assert(html.includes(`<h1 class="catalog-title">${title}</h1>`));
- assert(html.indexOf('Consoles</h1>')<html.indexOf('Emulation Consoles</h1>')&&html.indexOf('Emulation Consoles</h1>')<html.indexOf('VR</h1>')&&html.indexOf('VR</h1>')<html.indexOf('Controllers</h1>')&&html.indexOf('Controllers</h1>')<html.indexOf('Mobile</h1>')&&html.indexOf('Mobile</h1>')<html.indexOf('Peripherals</h1>')&&html.indexOf('Peripherals</h1>')<html.indexOf('Books</h1>')&&html.indexOf('Books</h1>')<html.indexOf('Headphones</h1>')&&html.indexOf('Headphones</h1>')<html.indexOf('Misc</h1>')&&html.indexOf('Misc</h1>')<html.indexOf('Your games</h1>'));
+ for(const title of ['Controllers','Mobile','Peripherals','Emulation Consoles','Cloud Consoles','VR','Books','Headphones','Misc'])assert(html.includes(`<h1 class="catalog-title">${title}</h1>`));
+ assert(html.indexOf('Consoles</h1>')<html.indexOf('Emulation Consoles</h1>')&&html.indexOf('Emulation Consoles</h1>')<html.indexOf('Cloud Consoles</h1>')&&html.indexOf('Cloud Consoles</h1>')<html.indexOf('VR</h1>')&&html.indexOf('VR</h1>')<html.indexOf('Controllers</h1>')&&html.indexOf('Controllers</h1>')<html.indexOf('Mobile</h1>')&&html.indexOf('Mobile</h1>')<html.indexOf('Peripherals</h1>')&&html.indexOf('Peripherals</h1>')<html.indexOf('Books</h1>')&&html.indexOf('Books</h1>')<html.indexOf('Headphones</h1>')&&html.indexOf('Headphones</h1>')<html.indexOf('Misc</h1>')&&html.indexOf('Misc</h1>')<html.indexOf('Your games</h1>'));
  assert(html.includes('.hardware-catalog~.hardware-catalog,.games-catalog{break-before:page;page-break-before:always}'));
  assert(gameSection.indexOf('2017')<gameSection.indexOf('2021'));
  assert(html.indexOf('<h2>Alpha</h2>')<html.indexOf('<h2>Zelda &amp; Friends</h2>'));
@@ -52,6 +53,6 @@ try{
  assert.equal(selectPdfLibrary(library,'all').games.length,2);
  assert.equal(selectPdfLibrary(library,'physical').games.length,1);
  assert.equal(selectPdfLibrary(library,'physical').games[0].values.Title,'Zelda & Friends');
- assert.equal(selectPdfLibrary(library,'physical').hardware.length,10);
+ assert.equal(selectPdfLibrary(library,'physical').hardware.length,11);
  console.log('PASS: PDF cover totals, chronological category/game groups, independent category numbering, section page separation, omitted notes, safe text and clickable links.');
 }finally{rmSync(dir,{recursive:true,force:true});}
